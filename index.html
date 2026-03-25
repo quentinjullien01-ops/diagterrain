@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DiagTerrain — BTP Ingénierie</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DiagTerrain">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--sf:#1a1d27;--sf2:#22263a;
+  --br:rgba(255,255,255,0.07);--br2:rgba(255,255,255,0.14);
+  --ac:#f0a500;--ac2:rgba(240,165,0,0.15);
+  --tx:#f0ede8;--tx2:#9a97a0;--tx3:#4a485a;
+  --red:#e05252;--red2:rgba(224,82,82,0.15);
+  --grn:#4caf7d;--grn2:rgba(76,175,125,0.15);
+  --blu:#4a9eff;--blu2:rgba(74,158,255,0.15);
+  --pur:#a855f7;
+  --r:10px;--rl:16px;
+  --fn:'DM Sans',system-ui,sans-serif;
+  --mo:'JetBrains Mono',monospace;
+}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--fn);background:var(--bg);color:var(--tx);height:100dvh;overflow:hidden;user-select:none}
+.scr{display:none;flex-direction:column;height:100dvh}
+.scr.on{display:flex}
+.hdr{display:flex;align-items:center;gap:10px;padding:13px 14px 11px;border-bottom:0.5px solid var(--br);background:var(--sf);flex-shrink:0}
+.hdr-t{font-size:15px;font-weight:500;flex:1}
+.hdr-s{font-size:11px;color:var(--tx2);margin-top:1px}
+.ib{width:36px;height:36px;border-radius:8px;border:0.5px solid var(--br2);background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.ib:active{opacity:.7}
+.ib svg{width:18px;height:18px;stroke:var(--tx2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav{display:flex;border-top:0.5px solid var(--br);background:var(--sf);flex-shrink:0}
+.nb{flex:1;padding:9px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none}
+.nb svg{width:20px;height:20px;stroke:var(--tx3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .12s}
+.nb span{font-size:10px;color:var(--tx3);transition:color .12s}
+.nb.on svg{stroke:var(--ac)}
+.nb.on span{color:var(--ac)}
+.fg{display:flex;flex-direction:column;gap:6px}
+.fl{font-size:11px;font-weight:500;color:var(--tx2);letter-spacing:.06em;text-transform:uppercase}
+.fi{background:var(--sf);border:0.5px solid var(--br2);border-radius:var(--r);padding:11px 13px;color:var(--tx);font-size:15px;font-family:var(--fn);width:100%;outline:none}
+.fi:focus{border-color:var(--ac)}
+select.fi{cursor:pointer}
+select.fi option{background:var(--sf)}
+textarea.fi{min-height:80px;resize:none;line-height:1.5}
+.fi-sm{background:var(--bg);border:0.5px solid var(--br2);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:14px;font-family:var(--mo);width:100%;outline:none}
+.fi-sm:focus{border-color:var(--ac)}
+select.fi-sm option{background:var(--sf)}
+.btn{background:var(--ac);color:#000;font-weight:600;font-size:15px;border:none;border-radius:var(--rl);padding:15px;cursor:pointer;width:100%}
+.btn:active{opacity:.85}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-sec{background:var(--sf2);border:0.5px solid var(--br2);color:var(--tx);font-size:14px;font-weight:500;border-radius:var(--r);padding:12px;cursor:pointer;flex:1}
+.btn-del{background:var(--red2);border-color:var(--red);color:var(--red)}
+.btn-sav{background:var(--ac);border:none;color:#000;font-size:14px;font-weight:600;border-radius:var(--r);padding:12px;cursor:pointer;flex:2}
+.upz{background:var(--sf);border:1px dashed var(--br2);border-radius:var(--rl);padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer}
+.upz.ok{border-style:solid;border-color:var(--ac)}
+.upz svg{width:28px;height:28px;stroke:var(--tx3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.upz.ok svg{stroke:var(--ac)}
+.upz p{font-size:13px;color:var(--tx2);text-align:center;line-height:1.4}
+/* MAP */
+.map-wrap{flex:1;position:relative;overflow:hidden;background:#0a0a0f;touch-action:none}
+#plan-cvs{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+#mklayer{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+/* TOOLBAR */
+.map-tools{position:absolute;bottom:18px;right:14px;display:flex;flex-direction:column;gap:8px}
+.mfab{width:52px;height:52px;border-radius:14px;background:var(--ac);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(240,165,0,.3)}
+.mfab svg{width:22px;height:22px;stroke:#000;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mfab-sm{width:40px;height:40px;border-radius:10px;background:var(--sf);border:0.5px solid var(--br2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mfab-sm svg{width:17px;height:17px;stroke:var(--tx2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.map-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,17,23,.88);border:0.5px solid var(--br2);border-radius:99px;padding:5px 14px;font-size:12px;color:var(--tx2);white-space:nowrap;backdrop-filter:blur(6px);pointer-events:none;transition:opacity .3s}
+.place-bar{position:absolute;top:0;left:0;right:0;z-index:30;background:rgba(240,165,0,.96);padding:10px 16px;display:none;align-items:center;gap:12px}
+.place-bar p{font-size:13px;font-weight:600;color:#000;flex:1}
+.place-cancel{background:rgba(0,0,0,.2);border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;color:#000;cursor:pointer}
+/* SHEET */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;backdrop-filter:blur(2px)}
+.ov.on{display:block}
+.sheet{position:fixed;bottom:0;left:0;right:0;z-index:101;background:var(--sf);border-radius:20px 20px 0 0;border-top:0.5px solid var(--br2);transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);max-height:92dvh;display:flex;flex-direction:column}
+.sheet.on{transform:translateY(0)}
+.sh-handle{width:34px;height:4px;background:var(--br2);border-radius:99px;margin:10px auto 0;flex-shrink:0}
+.sh-hdr{padding:14px 18px 11px;border-bottom:0.5px solid var(--br);flex-shrink:0}
+.sh-title{font-size:17px;font-weight:600}
+.sh-id{font-size:11px;color:var(--ac);font-family:var(--mo);margin-top:2px}
+.sh-body{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:14px}
+.sh-foot{padding:14px 18px;border-top:0.5px solid var(--br);flex-shrink:0;display:flex;gap:10px}
+/* PIN EDITOR */
+.pin-editor{display:flex;gap:10px;align-items:center}
+.pin-prev{width:36px;height:36px;border-radius:6px;transform:rotate(45deg);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid rgba(255,255,255,.2);transition:background .15s}
+.pin-prev span{transform:rotate(-45deg);font-size:9px;font-weight:700;color:#000;font-family:var(--mo);max-width:30px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;display:block}
+.pin-prev.t-fissure{background:var(--red)}
+.pin-prev.t-visuel{background:var(--blu)}
+.pin-prev.t-autre{background:var(--tx2)}
+/* TYPE */
+.tr{display:flex;gap:8px}
+.tb{flex:1;padding:9px 4px;border-radius:8px;border:0.5px solid var(--br2);background:var(--sf2);cursor:pointer;font-size:12px;font-weight:500;color:var(--tx2);text-align:center;transition:all .12s}
+.tb.af{background:var(--red2);border-color:var(--red);color:var(--red)}
+.tb.av{background:var(--blu2);border-color:var(--blu);color:var(--blu)}
+.tb.aa{background:rgba(154,151,160,.12);border-color:var(--tx2);color:var(--tx)}
+/* FISSURE */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mf{display:flex;flex-direction:column;gap:4px}
+.ml{font-size:11px;color:var(--tx2);font-weight:500}
+/* PHOTOS */
+.ph-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.ph-wrap{position:relative;flex-shrink:0}
+.ph-thumb{width:70px;height:70px;border-radius:8px;object-fit:cover;border:0.5px solid var(--br2);display:block}
+.ph-badge{position:absolute;bottom:3px;right:3px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ph-badge.loc{background:var(--pur)}
+.ph-badge.unloc{background:var(--tx3)}
+.ph-badge svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ph-add{width:70px;height:70px;border-radius:8px;border:1px dashed var(--br2);background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.ph-add svg{width:20px;height:20px;stroke:var(--tx3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* LIST */
+.li{padding:13px 14px;border-bottom:0.5px solid var(--br);display:flex;align-items:flex-start;gap:11px;cursor:pointer}
+.li:active{background:var(--sf)}
+.li-dot{width:9px;height:9px;border-radius:2px;transform:rotate(45deg);flex-shrink:0;margin-top:4px}
+.li-dot.t-fissure{background:var(--red)}
+.li-dot.t-visuel{background:var(--blu)}
+.li-dot.t-autre{background:var(--tx2)}
+.li-info{flex:1;min-width:0}
+.li-id{font-size:11px;font-family:var(--mo);color:var(--ac);margin-bottom:2px}
+.li-title{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-meta{font-size:12px;color:var(--tx2);margin-top:2px}
+.li-pc{font-size:11px;color:var(--tx3);background:var(--sf2);border-radius:4px;padding:2px 6px;flex-shrink:0;align-self:center}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:40px;color:var(--tx2);font-size:14px;text-align:center}
+.empty svg{width:44px;height:44px;stroke:var(--tx3);fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+/* EXPORT */
+.exp-stats{background:var(--sf);border:0.5px solid var(--br2);border-radius:var(--rl);padding:18px;display:flex;gap:12px}
+.es{flex:1;text-align:center}
+.es-n{font-size:24px;font-weight:600;color:var(--ac);font-family:var(--mo)}
+.es-l{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em}
+.ec{background:var(--sf);border:0.5px solid var(--br2);border-radius:var(--rl);padding:16px 18px;display:flex;align-items:center;gap:13px;cursor:pointer}
+.ec:active{border-color:var(--ac)}
+.ec-ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ec-ic svg{width:18px;height:18px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ec h3{font-size:14px;font-weight:500}
+.ec p{font-size:12px;color:var(--tx2);margin-top:1px}
+.ec-b{margin-left:auto;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;flex-shrink:0}
+/* HOME */
+.home-inner{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:0}
+.h-logo{font-family:var(--mo);font-size:11px;color:var(--ac);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.h-title{font-size:30px;font-weight:600;line-height:1.15;margin-bottom:6px}
+.h-title span{color:var(--ac)}
+.h-sub{font-size:13px;color:var(--tx2);margin-bottom:36px;line-height:1.5;text-align:center}
+.h-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:380px}
+.h-card{background:var(--sf);border:0.5px solid var(--br2);border-radius:var(--rl);padding:18px;cursor:pointer;display:flex;align-items:center;gap:14px}
+.h-card:active{border-color:var(--ac)}
+.h-card-ic{width:42px;height:42px;border-radius:10px;background:var(--sf2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.h-card-ic svg{width:20px;height:20px;stroke:var(--ac);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.h-card h3{font-size:14px;font-weight:500;margin-bottom:2px}
+.h-card p{font-size:12px;color:var(--tx2);line-height:1.35}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--sf2);border:0.5px solid var(--br2);border-radius:99px;padding:9px 18px;font-size:13px;color:var(--tx);z-index:400;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#ibanner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:var(--ac);padding:12px 16px;align-items:center;gap:12px}
+#ibanner p{flex:1;font-size:13px;font-weight:600;color:#000}
+.ib-no{background:rgba(0,0,0,.15);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;color:#000;cursor:pointer}
+.ib-yes{background:#000;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;color:var(--ac);cursor:pointer}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div id="ibanner"><p>Installer DiagTerrain ?</p><button class="ib-no" onclick="document.getElementById('ibanner').style.display='none'">Plus tard</button><button class="ib-yes" onclick="installApp()">Installer</button></div>
+<div class="ov" id="ov" onclick="closeSheet()"></div>
+
+<!-- SHEET -->
+<div class="sheet" id="obs-sheet">
+  <div class="sh-handle"></div>
+  <div class="sh-hdr">
+    <div class="sh-title" id="sh-title">Nouvelle observation</div>
+    <div class="sh-id" id="sh-id">OBS-001</div>
+  </div>
+  <div class="sh-body">
+    <div class="fg">
+      <div class="fl">Type</div>
+      <div class="tr">
+        <div class="tb" id="tb-f" onclick="setType('fissure')">Fissuration</div>
+        <div class="tb" id="tb-v" onclick="setType('visuel')">Visuel</div>
+        <div class="tb" id="tb-a" onclick="setType('autre')">Autre</div>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fl">Étiquette du pin</div>
+      <div class="pin-editor">
+        <div class="pin-prev t-visuel" id="pin-prev"><span id="pin-prev-txt">01</span></div>
+        <input class="fi" id="pin-label" placeholder="ex: P3, Mur S, Façade N…" maxlength="8" oninput="updatePrev()">
+      </div>
+      <div style="font-size:11px;color:var(--tx3)">Laisser vide = numéro auto · 8 caractères max</div>
+    </div>
+    <div id="fiss-fields" style="display:none">
+      <div class="fl" style="margin-bottom:8px">Caractéristiques fissure</div>
+      <div class="fgrid">
+        <div class="mf"><div class="ml">Largeur (mm)</div><input class="fi-sm" id="f-larg" type="number" step="0.1" placeholder="0.3"></div>
+        <div class="mf"><div class="ml">Longueur (cm)</div><input class="fi-sm" id="f-long" type="number" placeholder="45"></div>
+        <div class="mf"><div class="ml">Orientation</div>
+          <select class="fi-sm" id="f-ori"><option value="">—</option><option>Verticale</option><option>Horizontale</option><option>Oblique</option><option>En étoile</option><option>Réseau</option></select>
+        </div>
+        <div class="mf"><div class="ml">Activité</div>
+          <select class="fi-sm" id="f-act"><option value="">—</option><option>Active</option><option>Stabilisée</option><option>Inconnue</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="fg"><div class="fl">Localisation</div><input class="fi" id="obs-loc" placeholder="ex: Poteau P3, face sud, à 1m20 du sol"></div>
+    <div class="fg"><div class="fl">Observation</div><textarea class="fi" id="obs-txt" placeholder="Description, matériaux, gravité estimée…"></textarea></div>
+    <div class="fg">
+      <div class="fl">Photos <span style="font-size:10px;color:var(--tx3);font-weight:400;text-transform:none;margin-left:4px">— badge 📍 pour localiser sur le plan</span></div>
+      <div class="ph-row" id="ph-row"></div>
+      <input type="file" id="ph-input" accept="image/*" multiple capture="environment" style="display:none" onchange="addPhotos(this)">
+    </div>
+  </div>
+  <div class="sh-foot">
+    <button class="btn-sec btn-del" onclick="deleteObs()">Suppr.</button>
+    <button class="btn-sav" onclick="saveObs()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="scr on" id="scr-home">
+  <div class="home-inner">
+    <div class="h-logo">BTP Ingénierie</div>
+    <h1 class="h-title">Diag<span>Terrain</span></h1>
+    <p class="h-sub">Localisation des observations et photos sur plan.<br>Export fiches structurelles.</p>
+    <div class="h-actions">
+      <button class="btn" onclick="goSetup()">+ Nouvelle mission</button>
+      <div class="h-card" onclick="document.getElementById('imp-home').click()">
+        <div class="h-card-ic"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+        <div><h3>Reprendre une mission</h3><p>Importer une sauvegarde JSON</p></div>
+      </div>
+      <input type="file" id="imp-home" accept=".json" style="display:none" onchange="loadJSON(this)">
+    </div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div class="scr" id="scr-setup">
+  <div class="hdr"><button class="ib" onclick="goHome()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="hdr-t">Nouvelle mission</div></div>
+  <div style="flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:18px">
+    <div class="fg"><div class="fl">Nom de la mission</div><input class="fi" id="p-name" placeholder="ex: Diagnostic post-incendie — Salle polyvalente" oninput="chkSetup()"></div>
+    <div class="fg"><div class="fl">Référence affaire</div><input class="fi" id="p-ref" placeholder="ex: 2026-042"></div>
+    <div class="fg"><div class="fl">Ingénieur</div><input class="fi" id="p-ing" value="Q. JULLIEN"></div>
+    <div class="fg">
+      <div class="fl">Plan (PDF, JPG, PNG)</div>
+      <div class="upz" id="upz" onclick="document.getElementById('plan-file').click()">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        <p id="up-label">Appuyer pour charger un plan<br><span style="font-size:11px;color:var(--tx3)">PDF, JPG, PNG</span></p>
+        <input type="file" id="plan-file" accept="image/*,application/pdf" style="display:none" onchange="handlePlan(this)">
+      </div>
+    </div>
+  </div>
+  <div style="padding:14px;border-top:0.5px solid var(--br);flex-shrink:0"><button class="btn" id="btn-start" onclick="startMission()" disabled>Démarrer la mission</button></div>
+</div>
+
+<!-- MAP -->
+<div class="scr" id="scr-map">
+  <div class="hdr">
+    <div style="flex:1"><div class="hdr-t" id="map-title">—</div><div class="hdr-s" id="map-ref">—</div></div>
+  </div>
+  <div class="map-wrap" id="map-wrap">
+    <canvas id="plan-cvs"></canvas>
+    <svg id="mklayer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none"></svg>
+    <div class="map-hint" id="map-hint">Appui long pour ajouter une observation</div>
+    <div class="place-bar" id="place-bar">
+      <p>Appuyer sur le plan pour localiser la photo</p>
+      <button class="place-cancel" onclick="cancelPlace()">Annuler</button>
+    </div>
+  </div>
+  <div class="map-tools">
+    <div class="mfab-sm" onclick="doZoomIn()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    <div class="mfab-sm" onclick="doZoomOut()"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    <div class="mfab-sm" onclick="fitMap()"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></div>
+    <div class="mfab" onclick="openNewObs(null)"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+  </div>
+  <div class="nav">
+    <button class="nb on" id="nb-m" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
+    <button class="nb" id="nb-l" onclick="goList()"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Relevés</span></button>
+    <button class="nb" id="nb-e" onclick="goExp()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
+  </div>
+</div>
+
+<!-- LIST -->
+<div class="scr" id="scr-list">
+  <div class="hdr"><button class="ib" onclick="showMap()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="hdr-t">Observations</div><button class="ib" onclick="openNewObs(null)"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+  <div style="flex:1;overflow-y:auto" id="list-body"></div>
+  <div class="nav">
+    <button class="nb" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
+    <button class="nb on" onclick="goList()"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Relevés</span></button>
+    <button class="nb" onclick="goExp()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div class="scr" id="scr-exp">
+  <div class="hdr"><button class="ib" onclick="showMap()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="hdr-t">Export</div></div>
+  <div style="flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:12px">
+    <div class="exp-stats">
+      <div class="es"><div class="es-n" id="en-o">0</div><div class="es-l">Obs.</div></div>
+      <div class="es"><div class="es-n" id="en-f">0</div><div class="es-l">Fissures</div></div>
+      <div class="es"><div class="es-n" id="en-p">0</div><div class="es-l">Photos</div></div>
+      <div class="es"><div class="es-n" id="en-l">0</div><div class="es-l">Localisées</div></div>
+    </div>
+    <div class="ec" onclick="expJSON()"><div class="ec-ic" style="background:var(--ac2)"><svg viewBox="0 0 24 24" stroke="var(--ac)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><h3>Sauvegarde complète</h3><p>JSON — toutes données + photos</p></div><div class="ec-b" style="background:var(--ac2);color:var(--ac)">JSON</div></div>
+    <div class="ec" onclick="expCSV()"><div class="ec-ic" style="background:var(--grn2)"><svg viewBox="0 0 24 24" stroke="var(--grn)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></div><div><h3>Tableau CSV</h3><p>Observations + mesures fissures</p></div><div class="ec-b" style="background:var(--grn2);color:var(--grn)">CSV</div></div>
+    <div class="ec" onclick="expHTML()"><div class="ec-ic" style="background:var(--blu2)"><svg viewBox="0 0 24 24" stroke="var(--blu)"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div><h3>Rapport HTML → PDF</h3><p>Plan annoté + fiches avec photos</p></div><div class="ec-b" style="background:var(--blu2);color:var(--blu)">HTML</div></div>
+  </div>
+  <div class="nav">
+    <button class="nb" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
+    <button class="nb" onclick="goList()"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Relevés</span></button>
+    <button class="nb on" onclick="goExp()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// STATE
+let proj={name:'',ref:'',ing:'Q. JULLIEN',date:''};
+let obs=[], planImg=null, counter=0;
+let editId=null, pendPos=null, curPhotos=[];
+let placeMode=false, placeIdx=null;
+
+// PAN/ZOOM — touch natif propre
+let sc=1, px=0, py=0;
+let _drag=false, _lx=0, _ly=0, _moved=false, _lpt=null;
+let _p1=null, _p2=null, _d0=0, _sc0=1;
+
+function W(){ return document.getElementById('map-wrap'); }
+function C(){ return document.getElementById('plan-cvs'); }
+
+function applyT(){
+  C().style.transform=`translate(${px}px,${py}px) scale(${sc})`;
+  renderMk();
+}
+
+function fitMap(){
+  const w=W(), c=C();
+  if(!c.width) return;
+  const f=Math.min(w.clientWidth/c.width, w.clientHeight/c.height)*0.95;
+  sc=f;
+  px=(w.clientWidth-c.width*sc)/2;
+  py=(w.clientHeight-c.height*sc)/2;
+  applyT();
+}
+
+function doZoomIn(){ zoomAt(1.3, W().clientWidth/2, W().clientHeight/2); }
+function doZoomOut(){ zoomAt(0.77, W().clientWidth/2, W().clientHeight/2); }
+
+function zoomAt(f, cx, cy){
+  const ns=Math.min(Math.max(sc*f, 0.1), 12);
+  px=cx-(cx-px)*ns/sc;
+  py=cy-(cy-py)*ns/sc;
+  sc=ns; applyT();
+}
+
+function s2c(sx, sy){
+  const r=W().getBoundingClientRect();
+  return {x:(sx-r.left-px)/sc, y:(sy-r.top-py)/sc};
+}
+
+function setupMapEvents(){
+  const wrap=W();
+
+  wrap.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    const t=e.touches;
+    if(t.length===1){
+      _p1={x:t[0].clientX,y:t[0].clientY}; _p2=null;
+      _lx=t[0].clientX; _ly=t[0].clientY;
+      _moved=false; _drag=true;
+      _lpt=setTimeout(()=>{
+        if(!_moved && !placeMode){
+          navigator.vibrate&&navigator.vibrate(40);
+          openNewObs(s2c(_lx,_ly));
+        }
+      },580);
+    } else if(t.length===2){
+      clearTimeout(_lpt); _drag=false; _moved=true;
+      _p1={x:t[0].clientX,y:t[0].clientY};
+      _p2={x:t[1].clientX,y:t[1].clientY};
+      _d0=Math.hypot(_p2.x-_p1.x,_p2.y-_p1.y);
+      _sc0=sc;
+    }
+  },{passive:false});
+
+  wrap.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    const t=e.touches;
+    if(t.length===1 && _drag){
+      const dx=t[0].clientX-_lx, dy=t[0].clientY-_ly;
+      if(Math.abs(dx)+Math.abs(dy)>4){_moved=true; clearTimeout(_lpt);}
+      if(_moved && !placeMode){px+=dx; py+=dy; applyT();}
+      _lx=t[0].clientX; _ly=t[0].clientY;
+    } else if(t.length===2 && _p2){
+      const p1={x:t[0].clientX,y:t[0].clientY};
+      const p2={x:t[1].clientX,y:t[1].clientY};
+      const d=Math.hypot(p2.x-p1.x,p2.y-p1.y);
+      const ns=Math.min(Math.max(_sc0*d/_d0,0.1),12);
+      const cx=(p1.x+p2.x)/2, cy=(p1.y+p2.y)/2;
+      px=cx-(cx-px)*ns/sc; py=cy-(cy-py)*ns/sc;
+      sc=ns; applyT();
+    }
+  },{passive:false});
+
+  wrap.addEventListener('touchend', e=>{
+    clearTimeout(_lpt);
+    if(e.touches.length===0){
+      if(placeMode && !_moved) confirmPlace(s2c(_lx,_ly));
+      _drag=false; _p2=null;
+    }
+  },{passive:false});
+
+  wrap.addEventListener('mousedown', e=>{
+    _moved=false; _drag=true; _lx=e.clientX; _ly=e.clientY;
+    _lpt=setTimeout(()=>{if(!_moved && !placeMode) openNewObs(s2c(e.clientX,e.clientY));},580);
+  });
+  wrap.addEventListener('mousemove', e=>{
+    if(!_drag) return;
+    const dx=e.clientX-_lx, dy=e.clientY-_ly;
+    if(Math.abs(dx)+Math.abs(dy)>3){_moved=true; clearTimeout(_lpt);}
+    if(_moved && !placeMode){px+=dx; py+=dy; applyT();}
+    _lx=e.clientX; _ly=e.clientY;
+  });
+  wrap.addEventListener('mouseup', e=>{
+    clearTimeout(_lpt); _drag=false;
+    if(placeMode && !_moved) confirmPlace(s2c(e.clientX,e.clientY));
+  });
+  wrap.addEventListener('wheel', e=>{
+    e.preventDefault();
+    zoomAt(e.deltaY<0?1.12:0.89, e.clientX, e.clientY);
+  },{passive:false});
+}
+
+// MARKERS via SVG
+function renderMk(){
+  const svg=document.getElementById('mklayer');
+  svg.innerHTML='';
+  obs.forEach(o=>{
+    if(o.pos) mkObs(svg,o);
+    (o.photos||[]).forEach((ph,pi)=>{ if(ph.pos) mkPhoto(svg,ph.pos,o.id); });
+  });
+}
+
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));return e;}
+
+function mkObs(svg,o){
+  const sx=o.pos.x*sc+px, sy=o.pos.y*sc+py;
+  const lbl=o.pinLabel||String(o.id).padStart(2,'0');
+  const col=o.type==='fissure'?'#e05252':o.type==='visuel'?'#4a9eff':'#9a97a0';
+  const fs=lbl.length>4?7:lbl.length>2?8:10;
+  const g=el('g',{transform:`translate(${sx},${sy})`,cursor:'pointer','pointer-events':'all'});
+  // losange = rect tourné 45°, centré à (0,-24)
+  g.appendChild(el('rect',{x:'-13',y:'-37',width:'26',height:'26',rx:'4',fill:col,stroke:'rgba(255,255,255,0.35)','stroke-width':'1.5',transform:'rotate(45,0,-24)'}));
+  const txt=el('text',{x:'0',y:'-21','text-anchor':'middle','dominant-baseline':'middle',fill:'#000','font-family':'JetBrains Mono,monospace','font-weight':'700','font-size':String(fs)});
+  txt.textContent=lbl; g.appendChild(txt);
+  g.appendChild(el('line',{x1:'0',y1:'0',x2:'0',y2:'-8',stroke:'rgba(255,255,255,0.25)','stroke-width':'2'}));
+  g.addEventListener('click',e=>{e.stopPropagation();openEditObs(o.id);});
+  svg.appendChild(g);
+}
+
+function mkPhoto(svg,pos,obsId){
+  const sx=pos.x*sc+px, sy=pos.y*sc+py;
+  const g=el('g',{transform:`translate(${sx},${sy})`,cursor:'pointer','pointer-events':'all'});
+  g.appendChild(el('circle',{cx:'0',cy:'-18',r:'11',fill:'#a855f7',stroke:'rgba(255,255,255,0.3)','stroke-width':'1.5'}));
+  const txt=el('text',{x:'0',y:'-14','text-anchor':'middle','font-size':'11'});
+  txt.textContent='📷'; g.appendChild(txt);
+  g.appendChild(el('line',{x1:'0',y1:'0',x2:'0',y2:'-7',stroke:'rgba(255,255,255,0.2)','stroke-width':'2'}));
+  g.addEventListener('click',e=>{e.stopPropagation();openEditObs(obsId);});
+  svg.appendChild(g);
+}
+
+// PLACE MODE
+function enterPlace(idx){
+  placeMode=true; placeIdx=idx;
+  document.getElementById('place-bar').style.display='flex';
+  document.getElementById('map-hint').style.opacity='0';
+  closeSheet(); showMap();
+}
+function cancelPlace(){
+  placeMode=false; placeIdx=null;
+  document.getElementById('place-bar').style.display='none';
+  document.getElementById('map-hint').style.opacity='1';
+  if(editId!==null) openEditObs(editId,true); else reopenSheet();
+}
+function confirmPlace(pos){
+  placeMode=false;
+  document.getElementById('place-bar').style.display='none';
+  document.getElementById('map-hint').style.opacity='1';
+  if(placeIdx!==null && placeIdx<curPhotos.length){ curPhotos[placeIdx].pos=pos; toast('Photo localisée'); }
+  renderMk();
+  setTimeout(()=>{ if(editId!==null) openEditObs(editId,true); else reopenSheet(); },150);
+}
+function reopenSheet(){
+  renderPhotoRow(curPhotos);
+  document.getElementById('ov').classList.add('on');
+  document.getElementById('obs-sheet').classList.add('on');
+}
+
+// OBS SHEET
+function nxtId(){ return ++counter; }
+
+function updatePrev(){
+  const v=document.getElementById('pin-label').value.trim();
+  const n=String(counter+1).padStart(2,'0');
+  document.getElementById('pin-prev-txt').textContent=v||n;
+}
+
+function openNewObs(pos){
+  editId=null; pendPos=pos; clearSheet();
+  document.getElementById('sh-title').textContent='Nouvelle observation';
+  document.getElementById('sh-id').textContent='OBS-'+String(counter+1).padStart(3,'0');
+  updatePrev(); openSheet();
+}
+
+function openEditObs(id, keepPhotos){
+  const o=obs.find(x=>x.id===id); if(!o)return;
+  editId=id;
+  document.getElementById('sh-title').textContent='Observation';
+  document.getElementById('sh-id').textContent='OBS-'+String(id).padStart(3,'0');
+  setType(o.type||'visuel');
+  document.getElementById('pin-label').value=o.pinLabel||'';
+  document.getElementById('pin-prev-txt').textContent=o.pinLabel||String(id).padStart(2,'0');
+  document.getElementById('pin-prev').className='pin-prev t-'+(o.type||'visuel');
+  document.getElementById('obs-loc').value=o.loc||'';
+  document.getElementById('obs-txt').value=o.text||'';
+  if(o.type==='fissure'&&o.fissure){
+    document.getElementById('f-larg').value=o.fissure.larg||'';
+    document.getElementById('f-long').value=o.fissure.long||'';
+    document.getElementById('f-ori').value=o.fissure.ori||'';
+    document.getElementById('f-act').value=o.fissure.act||'';
+  }
+  if(!keepPhotos) curPhotos=(o.photos||[]).map(p=>({src:p.src,pos:p.pos||null}));
+  renderPhotoRow(curPhotos); openSheet();
+}
+
+function clearSheet(){
+  setType('visuel');
+  document.getElementById('pin-label').value='';
+  document.getElementById('obs-loc').value='';
+  document.getElementById('obs-txt').value='';
+  ['f-larg','f-long'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f-ori').value=''; document.getElementById('f-act').value='';
+  curPhotos=[]; renderPhotoRow([]);
+}
+
+let curType='visuel';
+function setType(t){
+  curType=t;
+  document.getElementById('tb-f').className='tb'+(t==='fissure'?' af':'');
+  document.getElementById('tb-v').className='tb'+(t==='visuel'?' av':'');
+  document.getElementById('tb-a').className='tb'+(t==='autre'?' aa':'');
+  document.getElementById('fiss-fields').style.display=t==='fissure'?'block':'none';
+  document.getElementById('pin-prev').className='pin-prev t-'+t;
+}
+
+function renderPhotoRow(photos){
+  const row=document.getElementById('ph-row'); row.innerHTML='';
+  photos.forEach((ph,i)=>{
+    const w=document.createElement('div'); w.className='ph-wrap';
+    const img=document.createElement('img'); img.className='ph-thumb'; img.src=ph.src;
+    img.onclick=()=>{if(confirm('Supprimer cette photo ?')){curPhotos.splice(i,1);renderPhotoRow(curPhotos);}};
+    w.appendChild(img);
+    const b=document.createElement('div');
+    b.className='ph-badge '+(ph.pos?'loc':'unloc');
+    b.innerHTML=ph.pos
+      ?'<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 13 8 13s8-7.6 8-13a8 8 0 0 0-8-8z"/></svg>'
+      :'<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    b.onclick=e=>{e.stopPropagation();enterPlace(i);};
+    w.appendChild(b); row.appendChild(w);
+  });
+  const add=document.createElement('div'); add.className='ph-add';
+  add.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+  add.onclick=()=>document.getElementById('ph-input').click();
+  row.appendChild(add);
+}
+
+async function addPhotos(input){
+  for(const f of input.files){ curPhotos.push({src:await toDataURL(f),pos:null}); }
+  renderPhotoRow(curPhotos); input.value='';
+  if(curPhotos.length>0){
+    const idx=curPhotos.length-1;
+    setTimeout(()=>{if(confirm('Localiser cette photo sur le plan ?')) enterPlace(idx);},300);
+  }
+}
+
+function saveObs(){
+  const text=document.getElementById('obs-txt').value.trim();
+  const loc=document.getElementById('obs-loc').value.trim();
+  const pinLabel=document.getElementById('pin-label').value.trim();
+  if(!text&&!loc&&curPhotos.length===0){toast('Ajoutez une observation, localisation ou photo');return;}
+  const d={type:curType,text,loc,pinLabel,photos:curPhotos.map(p=>({src:p.src,pos:p.pos||null})),date:new Date().toLocaleString('fr-FR')};
+  if(curType==='fissure') d.fissure={larg:document.getElementById('f-larg').value,long:document.getElementById('f-long').value,ori:document.getElementById('f-ori').value,act:document.getElementById('f-act').value};
+  if(editId!==null){const o=obs.find(x=>x.id===editId);Object.assign(o,d);}
+  else{d.id=nxtId();d.pos=pendPos;obs.push(d);}
+  closeSheet(); renderMk(); toast('Enregistré');
+}
+
+function deleteObs(){
+  if(editId===null){closeSheet();return;}
+  if(!confirm('Supprimer ?'))return;
+  obs=obs.filter(o=>o.id!==editId);
+  closeSheet(); renderMk(); renderList(); toast('Supprimé');
+}
+
+function openSheet(){document.getElementById('ov').classList.add('on');document.getElementById('obs-sheet').classList.add('on');}
+function closeSheet(){document.getElementById('ov').classList.remove('on');document.getElementById('obs-sheet').classList.remove('on');}
+
+// SCREENS
+function showScr(id){document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));document.getElementById('scr-'+id).classList.add('on');}
+function goHome(){showScr('home');}
+function goSetup(){showScr('setup');}
+function showMap(){showScr('map');renderMk();}
+function goList(){showScr('list');renderList();}
+function goExp(){showScr('exp');renderExp();}
+
+// SETUP
+function chkSetup(){document.getElementById('btn-start').disabled=!(document.getElementById('p-name').value.trim()&&planImg);}
+async function handlePlan(input){
+  const f=input.files[0]; if(!f)return;
+  document.getElementById('upz').classList.add('ok');
+  document.getElementById('up-label').innerHTML='<span style="color:var(--ac);font-family:var(--mo);font-size:12px">'+f.name+'</span><br><span style="font-size:11px;color:var(--tx2)">Chargement…</span>';
+  if(f.type==='application/pdf'){
+    const ab=await f.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    const page=await pdf.getPage(1);
+    const vp=page.getViewport({scale:2.5});
+    const c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+    await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    planImg=c.toDataURL('image/jpeg',.92);
+  } else { planImg=await toDataURL(f); }
+  document.getElementById('up-label').innerHTML='<span style="color:var(--ac);font-family:var(--mo);font-size:12px">'+f.name+'</span><br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
+  chkSetup();
+}
+function startMission(){
+  proj={name:document.getElementById('p-name').value.trim(),ref:document.getElementById('p-ref').value.trim(),ing:document.getElementById('p-ing').value.trim(),date:new Date().toLocaleDateString('fr-FR')};
+  document.getElementById('map-title').textContent=proj.name;
+  document.getElementById('map-ref').textContent=proj.ref||'Sans référence';
+  showMap(); setTimeout(initMap,80);
+}
+
+// MAP INIT
+function initMap(){
+  const cvs=C(), img=new Image();
+  img.onload=()=>{cvs.width=img.width;cvs.height=img.height;cvs.getContext('2d').drawImage(img,0,0);fitMap();setupMapEvents();renderMk();};
+  img.src=planImg;
+}
+
+// LIST
+function renderList(){
+  const body=document.getElementById('list-body');
+  if(obs.length===0){body.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Aucune observation.<br>Appui long sur le plan pour en ajouter.</p></div>';return;}
+  body.innerHTML=obs.map(o=>`<div class="li" onclick="openEditObs(${o.id})">
+    <div class="li-dot t-${o.type}"></div>
+    <div class="li-info">
+      <div class="li-id">OBS-${String(o.id).padStart(3,'0')}${o.pinLabel?' · <b>'+esc(o.pinLabel)+'</b>':''} · ${o.type.toUpperCase()}</div>
+      <div class="li-title">${esc(o.loc||o.text||'—')}</div>
+      <div class="li-meta">${o.date}${o.type==='fissure'&&o.fissure?.larg?' · '+o.fissure.larg+' mm':''}</div>
+    </div>
+    ${(o.photos||[]).length?'<div class="li-pc">'+(o.photos||[]).length+'📷 '+(o.photos||[]).filter(p=>p.pos).length+'📍</div>':''}
+  </div>`).join('');
+}
+
+// EXPORT
+function renderExp(){
+  document.getElementById('en-o').textContent=obs.length;
+  document.getElementById('en-f').textContent=obs.filter(o=>o.type==='fissure').length;
+  document.getElementById('en-p').textContent=obs.reduce((a,o)=>a+(o.photos||[]).length,0);
+  document.getElementById('en-l').textContent=obs.reduce((a,o)=>a+(o.photos||[]).filter(p=>p.pos).length,0);
+}
+
+function expJSON(){dl(new Blob([JSON.stringify({proj,obs,planImg},null,2)],{type:'application/json'}),(proj.ref||'mission')+'_diagterrain.json');toast('Sauvegarde exportée');}
+
+function expCSV(){
+  const hdr=['ID','Pin','Type','Localisation','Observation','Date','Larg.(mm)','Long.(cm)','Orientation','Activité','Photos','Photos localisées'];
+  const rows=obs.map(o=>['OBS-'+String(o.id).padStart(3,'0'),o.pinLabel||'',o.type,o.loc||'',o.text||'',o.date,o.fissure?.larg||'',o.fissure?.long||'',o.fissure?.ori||'',o.fissure?.act||'',(o.photos||[]).length,(o.photos||[]).filter(p=>p.pos).length]);
+  dl(new Blob(['\uFEFF',[hdr,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n')],{type:'text/csv;charset=utf-8'}),(proj.ref||'mission')+'_observations.csv');
+  toast('CSV exporté');
+}
+
+function expHTML(){
+  const cvs=C(); let annotated=planImg;
+  if(cvs.width>0&&planImg){
+    const c=document.createElement('canvas'); c.width=cvs.width; c.height=cvs.height;
+    const ctx=c.getContext('2d'); const img=new Image(); img.src=planImg; ctx.drawImage(img,0,0);
+    obs.forEach(o=>{
+      if(!o.pos)return;
+      const col=o.type==='fissure'?'#e05252':o.type==='visuel'?'#4a9eff':'#9a97a0';
+      const lbl=o.pinLabel||String(o.id).padStart(2,'0');
+      const x=o.pos.x, y=o.pos.y;
+      ctx.save(); ctx.translate(x,y-24); ctx.rotate(Math.PI/4);
+      ctx.fillStyle=col; ctx.beginPath(); ctx.roundRect(-13,-13,26,26,4); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle='#000'; ctx.font=`bold ${lbl.length>4?7:lbl.length>2?8:10}px monospace`;
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(lbl,x,y-24);
+      ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-8); ctx.stroke();
+    });
+    obs.forEach(o=>(o.photos||[]).forEach(ph=>{
+      if(!ph.pos)return;
+      ctx.beginPath(); ctx.arc(ph.pos.x,ph.pos.y-18,11,0,Math.PI*2);
+      ctx.fillStyle='#a855f7'; ctx.fill();
+      ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('📷',ph.pos.x,ph.pos.y-18);
+    }));
+    annotated=c.toDataURL('image/jpeg',.9);
+  }
+  const obsHTML=obs.map(o=>`<div class="ob">
+    <div class="ob-hdr">
+      <span class="ob-num">OBS-${String(o.id).padStart(3,'0')}</span>
+      ${o.pinLabel?`<span class="ob-pin">${esc(o.pinLabel)}</span>`:''}
+      <span class="ob-type t-${o.type}">${o.type.toUpperCase()}</span>
+      <span class="ob-date">${o.date}</span>
+    </div>
+    ${o.loc?`<div class="row"><span class="lbl">Localisation</span><span>${esc(o.loc)}</span></div>`:''}
+    ${o.text?`<div class="row"><span class="lbl">Observation</span><span>${esc(o.text)}</span></div>`:''}
+    ${o.type==='fissure'&&o.fissure?`<div class="frow">${o.fissure.larg?'<span><b>Larg.:</b> '+o.fissure.larg+' mm</span>':''}${o.fissure.long?'<span><b>Long.:</b> '+o.fissure.long+' cm</span>':''}${o.fissure.ori?'<span><b>Orient.:</b> '+o.fissure.ori+'</span>':''}${o.fissure.act?'<span><b>Activité:</b> '+o.fissure.act+'</span>':''}</div>`:''}
+    ${(o.photos||[]).length?`<div class="photos">${(o.photos||[]).map((ph,pi)=>`<div class="ph-w"><img src="${ph.src}" class="ph-i"><div class="ph-c">Photo ${pi+1}${ph.pos?' — localisée':' — non localisée'}</div></div>`).join('')}</div>`:''}
+  </div>`).join('');
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Diagnostic structural — ${esc(proj.name)}</title>
+<style>body{font-family:Arial,sans-serif;max-width:960px;margin:0 auto;padding:24px;color:#1a1a2e;font-size:13px}h1{font-size:20px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#666;margin-bottom:24px;display:flex;gap:20px;flex-wrap:wrap;border-bottom:1px solid #ddd;padding-bottom:12px}.sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;margin:24px 0 10px;border-left:3px solid #f0a500;padding-left:10px}.plan-img{max-width:100%;border:1px solid #ddd;border-radius:8px}.plan-note{font-size:11px;color:#999;margin:4px 0 20px}.ob{border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:14px;page-break-inside:avoid}.ob-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}.ob-num{font-family:monospace;font-size:13px;font-weight:700;color:#f0a500}.ob-pin{font-family:monospace;font-size:12px;background:#fff8e1;border:1px solid #f0a500;border-radius:4px;padding:1px 6px;color:#8a5c00}.ob-type{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}.t-fissure{background:#fce8e8;color:#c0392b}.t-visuel{background:#e8f0fe;color:#1a5fb4}.t-autre{background:#f0f0f0;color:#555}.ob-date{font-size:11px;color:#aaa;margin-left:auto}.row{display:flex;gap:10px;font-size:12px;margin-bottom:5px}.lbl{min-width:90px;color:#888;font-weight:600}.frow{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;background:#fff8f0;border-radius:6px;padding:7px 10px;margin-top:6px}.photos{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}.ph-w{display:flex;flex-direction:column;gap:3px}.ph-i{width:160px;height:120px;object-fit:cover;border-radius:6px;border:1px solid #ddd}.ph-c{font-size:10px;color:#999;width:160px}@media print{body{padding:0}.ob{page-break-inside:avoid}}</style>
+</head><body>
+<h1>Rapport de diagnostic structural</h1>
+<div class="meta"><span><b>Mission :</b> ${esc(proj.name)}</span><span><b>Réf. :</b> ${esc(proj.ref||'—')}</span><span><b>Ingénieur :</b> ${esc(proj.ing)}</span><span><b>Date :</b> ${proj.date}</span><span><b>Observations :</b> ${obs.length}</span></div>
+<div class="sec">Plan annoté</div><img class="plan-img" src="${annotated}">
+<div class="plan-note">Losanges = observations (rouge=fissure, bleu=visuel, gris=autre) · ronds violets = photos localisées</div>
+<div class="sec">Relevé des observations</div>${obsHTML}
+</body></html>`;
+  dl(new Blob([html],{type:'text/html;charset=utf-8'}),(proj.ref||'mission')+'_rapport.html');
+  toast('Rapport exporté — Chrome → Imprimer → PDF');
+}
+
+// JSON IMPORT
+async function loadJSON(input){
+  const f=input.files[0]; if(!f)return;
+  const data=JSON.parse(await f.text());
+  proj=data.proj||{}; obs=data.obs||[]; planImg=data.planImg||null;
+  counter=obs.reduce((m,o)=>Math.max(m,o.id||0),0);
+  document.getElementById('map-title').textContent=proj.name||'';
+  document.getElementById('map-ref').textContent=proj.ref||'';
+  showMap(); setTimeout(initMap,80);
+  toast('Mission chargée — '+obs.length+' observations'); input.value='';
+}
+
+// UTILS
+function toDataURL(f){return new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(f);});}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800);}
+
+// PWA
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('ibanner').style.display='flex';});
+function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{deferredPrompt=null;document.getElementById('ibanner').style.display='none';if(r.outcome==='accepted')toast('DiagTerrain installée !');});}
+window.addEventListener('appinstalled',()=>{document.getElementById('ibanner').style.display='none';toast('Installée avec succès');});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));}
+</script>
+</body>
+</html>
