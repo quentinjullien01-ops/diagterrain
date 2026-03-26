@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js"></script>
 <style>
 :root{
   --bg:#0f1117;--sf:#1a1d27;--sf2:#22263a;
@@ -179,12 +180,31 @@ select.fi-sm option{background:var(--sf)}
   .hdr{padding-top:max(13px,env(safe-area-inset-top,0px))}
   .scr{height:100dvh}
 }
+
+/* TIFF PAGE SELECTOR */
+.tiff-sel{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:16px;backdrop-filter:blur(4px)}
+.tiff-sel h3{font-size:15px;font-weight:600;color:var(--tx);text-align:center}
+.tiff-sel p{font-size:12px;color:var(--tx2);text-align:center}
+.tiff-pages{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-height:60dvh;overflow-y:auto;padding:4px}
+.tiff-page-btn{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:8px;border-radius:10px;border:1.5px solid var(--br2);background:var(--sf);transition:border-color .15s}
+.tiff-page-btn:active{border-color:var(--ac)}
+.tiff-page-btn canvas{border-radius:4px;display:block}
+.tiff-page-btn span{font-size:11px;color:var(--tx2);font-family:var(--mo)}
+.tiff-cancel{background:var(--sf2);border:0.5px solid var(--br2);color:var(--tx);font-size:14px;font-weight:500;border-radius:var(--r);padding:11px 24px;cursor:pointer}
 </style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 <div id="ibanner"><p>Installer DiagTerrain ?</p><button class="ib-no" onclick="document.getElementById('ibanner').style.display='none'">Plus tard</button><button class="ib-yes" onclick="installApp()">Installer</button></div>
 <div class="ov" id="ov" onclick="closeSheet()"></div>
+
+<!-- TIFF PAGE SELECTOR -->
+<div class="tiff-sel" id="tiff-sel" style="display:none">
+  <h3>Sélectionner une page</h3>
+  <p id="tiff-sel-info">Ce fichier contient plusieurs pages</p>
+  <div class="tiff-pages" id="tiff-pages"></div>
+  <button class="tiff-cancel" onclick="document.getElementById('tiff-sel').style.display='none'">Annuler</button>
+</div>
 
 <!-- SHEET -->
 <div class="sheet" id="obs-sheet">
@@ -276,8 +296,8 @@ select.fi-sm option{background:var(--sf)}
       <div class="fl">Plan (PDF, JPG, PNG)</div>
       <div class="upz" id="upz" onclick="document.getElementById('plan-file').click()">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-        <p id="up-label">Appuyer pour charger un plan<br><span style="font-size:11px;color:var(--tx3)">PDF, JPG, PNG</span></p>
-        <input type="file" id="plan-file" accept="image/*,application/pdf" style="display:none" onchange="handlePlan(this)">
+        <p id="up-label">Appuyer pour charger un plan<br><span style="font-size:11px;color:var(--tx3)">PDF, JPG, PNG, TIFF</span></p>
+        <input type="file" id="plan-file" accept="image/*,application/pdf,.tif,.tiff,image/tiff" style="display:none" onchange="handlePlan(this)">
       </div>
     </div>
   </div>
@@ -678,21 +698,151 @@ function goExp(){showScr('exp');renderExp();}
 
 // SETUP
 function chkSetup(){document.getElementById('btn-start').disabled=!(document.getElementById('p-name').value.trim()&&planImg);}
+// Convertir une page TIFF (IFD) en dataURL JPEG
+function tiffPageToDataURL(ifd, width, height){
+  UTIF.decodeImage(ifd._data, ifd);
+  const rgba = UTIF.toRGBA8(ifd);
+  const c = document.createElement('canvas');
+  c.width = width; c.height = height;
+  const ctx = c.getContext('2d');
+  const imgData = ctx.createImageData(width, height);
+  imgData.data.set(rgba);
+  ctx.putImageData(imgData, 0, 0);
+  return c.toDataURL('image/jpeg', 0.92);
+}
+
+// Afficher le sélecteur de page TIFF
+function showTiffSelector(ifds, rawBuffer, fileName){
+  const sel = document.getElementById('tiff-sel');
+  const pages = document.getElementById('tiff-pages');
+  const info = document.getElementById('tiff-sel-info');
+  info.textContent = fileName + ' — ' + ifds.length + ' page' + (ifds.length > 1 ? 's' : '');
+  pages.innerHTML = '';
+  ifds.forEach((ifd, i) => {
+    try {
+      UTIF.decodeImage(rawBuffer, ifd);
+      const rgba = UTIF.toRGBA8(ifd);
+      const w = ifd.width, h = ifd.height;
+      // Miniature 120px max
+      const ratio = Math.min(120/w, 100/h);
+      const tw = Math.round(w*ratio), th = Math.round(h*ratio);
+      const c = document.createElement('canvas');
+      c.width = tw; c.height = th;
+      const ctx = c.getContext('2d');
+      // Créer image pleine taille puis réduire
+      const full = document.createElement('canvas');
+      full.width = w; full.height = h;
+      const fctx = full.getContext('2d');
+      const imgData = fctx.createImageData(w, h);
+      imgData.data.set(rgba);
+      fctx.putImageData(imgData, 0, 0);
+      ctx.drawImage(full, 0, 0, tw, th);
+      const btn = document.createElement('div');
+      btn.className = 'tiff-page-btn';
+      btn.appendChild(c);
+      const lbl = document.createElement('span');
+      lbl.textContent = 'Page ' + (i+1) + ' — ' + w + '×' + h;
+      btn.appendChild(lbl);
+      btn.onclick = () => {
+        // Reconstruire pleine résolution
+        const full2 = document.createElement('canvas');
+        full2.width = w; full2.height = h;
+        const ctx2 = full2.getContext('2d');
+        const id2 = ctx2.createImageData(w, h);
+        id2.data.set(rgba);
+        ctx2.putImageData(id2, 0, 0);
+        planImg = full2.toDataURL('image/jpeg', 0.92);
+        sel.style.display = 'none';
+        document.getElementById('up-label').innerHTML =
+          '<span style="color:var(--ac);font-family:var(--mo);font-size:12px">' + fileName + ' — p.' + (i+1) + '</span>' +
+          '<br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
+        chkSetup();
+      };
+      pages.appendChild(btn);
+    } catch(e) {
+      console.warn('TIFF page', i, 'erreur:', e);
+    }
+  });
+  sel.style.display = 'flex';
+}
+
 async function handlePlan(input){
   const f=input.files[0]; if(!f)return;
   document.getElementById('upz').classList.add('ok');
   document.getElementById('up-label').innerHTML='<span style="color:var(--ac);font-family:var(--mo);font-size:12px">'+f.name+'</span><br><span style="font-size:11px;color:var(--tx2)">Chargement…</span>';
+  const ext = f.name.split('.').pop().toLowerCase();
   if(f.type==='application/pdf'){
     const ab=await f.arrayBuffer();
     const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    if(pdf.numPages > 1){
+      // Sélecteur de page PDF
+      await showPdfSelector(pdf, f.name);
+      return;
+    }
     const page=await pdf.getPage(1);
     const vp=page.getViewport({scale:2.5});
     const c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
     await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
     planImg=c.toDataURL('image/jpeg',.92);
-  } else { planImg=await toDataURL(f); }
+  } else if(ext==='tif'||ext==='tiff'||f.type==='image/tiff'){
+    const ab = await f.arrayBuffer();
+    const ifds = UTIF.decode(ab);
+    if(ifds.length === 0){ toast('Fichier TIFF invalide'); return; }
+    if(ifds.length === 1){
+      // Page unique — charger directement
+      UTIF.decodeImage(ab, ifds[0]);
+      const rgba = UTIF.toRGBA8(ifds[0]);
+      const w = ifds[0].width, h = ifds[0].height;
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx = c.getContext('2d');
+      const imgData = ctx.createImageData(w, h);
+      imgData.data.set(rgba);
+      ctx.putImageData(imgData, 0, 0);
+      planImg = c.toDataURL('image/jpeg', 0.92);
+    } else {
+      // Multipage — afficher sélecteur
+      showTiffSelector(ifds, ab, f.name);
+      return;
+    }
+  } else {
+    planImg=await toDataURL(f);
+  }
   document.getElementById('up-label').innerHTML='<span style="color:var(--ac);font-family:var(--mo);font-size:12px">'+f.name+'</span><br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
   chkSetup();
+}
+
+// Sélecteur de page PDF (pour PDF multipages)
+async function showPdfSelector(pdf, fileName){
+  const sel = document.getElementById('tiff-sel');
+  const pages = document.getElementById('tiff-pages');
+  const info = document.getElementById('tiff-sel-info');
+  info.textContent = fileName + ' — ' + pdf.numPages + ' pages';
+  pages.innerHTML = '';
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({scale:0.3});
+    const c = document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+    await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    const btn = document.createElement('div');
+    btn.className = 'tiff-page-btn';
+    btn.appendChild(c);
+    const lbl = document.createElement('span'); lbl.textContent = 'Page '+i;
+    btn.appendChild(lbl);
+    const pageNum = i;
+    btn.onclick = async () => {
+      sel.style.display = 'none';
+      const fullVp = page.getViewport({scale:2.5});
+      const fc = document.createElement('canvas'); fc.width=fullVp.width; fc.height=fullVp.height;
+      await page.render({canvasContext:fc.getContext('2d'),viewport:fullVp}).promise;
+      planImg = fc.toDataURL('image/jpeg',.92);
+      document.getElementById('up-label').innerHTML =
+        '<span style="color:var(--ac);font-family:var(--mo);font-size:12px">' + fileName + ' — p.' + pageNum + '</span>' +
+        '<br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
+      chkSetup();
+    };
+    pages.appendChild(btn);
+  }
+  sel.style.display = 'flex';
 }
 async function startMission(){
   proj={name:document.getElementById('p-name').value.trim(),ref:document.getElementById('p-ref').value.trim(),ing:document.getElementById('p-ing').value.trim(),date:new Date().toLocaleDateString('fr-FR')};
