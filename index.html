@@ -1106,8 +1106,6 @@ async function expPDF(){
   const TXTD   = [30,30,30];     // texte sombre sur fond clair
   const TXTL   = [220,217,232];  // texte clair sur fond sombre
   const GRAY   = [120,118,130];
-  const LOGO_W =  + logo_white + r;
-  const LOGO_D =  + logo_dark  + r;
   const SIREN_TXT = 'BTP INGENIERIE RHONE ALPES - 31 Place Jules Grandclement, 69100 Villeurbanne - www.btp-ingenierie.fr';
 
   // ════════════════════════════════════════════
@@ -1120,7 +1118,7 @@ async function expPDF(){
   doc.setFillColor(255,255,255); doc.rect(0,0,PW,PH,'F');
 
   // Logo centré en haut
-  try{ doc.addImage(LOGO_W,'JPEG', PW/2-45, 18, 90, 22); }catch(e){}
+  try{ doc.addImage(LOGO_WHITEHITE,'JPEG', PW/2-45, 18, 90, 22); }catch(e){}
 
   // Trait orange sous le logo
   doc.setDrawColor(...ORANGE); doc.setLineWidth(0.8);
@@ -1208,7 +1206,7 @@ async function expPDF(){
   doc.setFillColor(...SURF); doc.rect(0,0,LW,18,'F');
   doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4); doc.line(0,18,LW,18);
   // Logo en-tête à droite
-  try{ doc.addImage(LOGO_D,'JPEG', LW-55, 1, 48, 15); }catch(e){}
+  try{ doc.addImage(LOGO_DARK,'JPEG', LW-55, 1, 48, 15); }catch(e){}
   // Infos mission haut gauche
   doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
   doc.text((proj.name||'').substring(0,60), marg, 8);
@@ -1274,7 +1272,7 @@ async function expPDF(){
   const legY=LH-FOOT+1;
   doc.setFillColor(...SURF); doc.rect(0,LH-FOOT,LW,FOOT,'F');
   doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3); doc.line(0,LH-FOOT,LW,LH-FOOT);
-  try{ doc.addImage(LOGO_D,'JPEG', marg, LH-FOOT+0.5, 26, 9); }catch(e){}
+  try{ doc.addImage(LOGO_DARK,'JPEG', marg, LH-FOOT+0.5, 26, 9); }catch(e){}
   doc.setFontSize(6); doc.setTextColor(...GRAY);
   doc.setFillColor(224,82,82); doc.rect(marg+30, legY+2, 3, 3, 'F');
   doc.text('Fissuration', marg+34, legY+5);
@@ -1311,7 +1309,7 @@ async function expPDF(){
     doc.text(proj.name||'', mP, 8);
     doc.text('Etude structurelle', mP, 13);
     doc.text('Reference : '+(proj.ref||'—'), mP, 18);
-    try{ doc.addImage(LOGO_W,'JPEG', PA-mP-42, 4, 40, 12); }catch(e){}
+    try{ doc.addImage(LOGO_WHITEHITE,'JPEG', PA-mP-42, 4, 40, 12); }catch(e){}
     // Trait orange sous l'en-tête
     doc.setDrawColor(...ORANGE); doc.setLineWidth(0.5);
     doc.line(mP, 22, PA-mP, 22);
