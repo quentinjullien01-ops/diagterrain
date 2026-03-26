@@ -211,6 +211,11 @@ select.fi-sm option{background:var(--sf)}
 .modal{background:var(--sf);border-radius:var(--rl);border:0.5px solid var(--br2);padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:16px}
 .modal h3{font-size:16px;font-weight:600}
 .modal-btns{display:flex;gap:10px}
+
+/* MOVE MODE BAR */
+.move-bar{position:absolute;top:0;left:0;right:0;z-index:30;background:rgba(168,85,247,.95);padding:10px 16px;display:none;align-items:center;gap:12px}
+.move-bar p{font-size:13px;font-weight:600;color:#fff;flex:1}
+.move-bar button{background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;color:#fff;cursor:pointer}
 </style>
 </head>
 <body>
@@ -334,6 +339,10 @@ select.fi-sm option{background:var(--sf)}
     <canvas id="plan-cvs"></canvas>
     <svg id="mklayer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none"></svg>
     <div class="map-hint" id="map-hint">Appui long pour ajouter une observation</div>
+    <div class="move-bar" id="move-bar">
+      <p id="move-bar-txt">Appuyer pour repositionner le pin</p>
+      <button onclick="cancelMove()">Annuler</button>
+    </div>
 
   </div>
   <div class="map-tools">
@@ -390,6 +399,7 @@ let proj={name:'',ref:'',ing:'Q. JULLIEN',date:''};
 let currentAffaireId=null;
 let obs=[], planImg=null, counter=0;
 let editId=null, pendPos=null, curPhotos=[];
+let moveMode=false, moveObsId=null;
 
 
 // PAN/ZOOM — touch natif propre
@@ -461,7 +471,7 @@ function setupMapEvents(){
     if(t.length===1 && _drag){
       const dx=t[0].clientX-_lx, dy=t[0].clientY-_ly;
       if(Math.abs(dx)+Math.abs(dy)>4){_moved=true; clearTimeout(_lpt);}
-      if(_moved){px+=dx; py+=dy; applyT();}
+      if(_moved && !moveMode){px+=dx; py+=dy; applyT();}
       _lx=t[0].clientX; _ly=t[0].clientY;
     } else if(t.length===2 && _p2){
       const p1={x:t[0].clientX,y:t[0].clientY};
@@ -477,6 +487,7 @@ function setupMapEvents(){
   wrap.addEventListener('touchend', e=>{
     clearTimeout(_lpt);
     if(e.touches.length===0){
+      if(moveMode && !_moved) confirmMove(s2c(_lx,_ly));
       _drag=false; _p2=null;
     }
   },{passive:false});
@@ -489,11 +500,12 @@ function setupMapEvents(){
     if(!_drag) return;
     const dx=e.clientX-_lx, dy=e.clientY-_ly;
     if(Math.abs(dx)+Math.abs(dy)>3){_moved=true; clearTimeout(_lpt);}
-    if(_moved){px+=dx; py+=dy; applyT();}
+    if(_moved && !moveMode){px+=dx; py+=dy; applyT();}
     _lx=e.clientX; _ly=e.clientY;
   });
   wrap.addEventListener('mouseup', e=>{
     clearTimeout(_lpt); _drag=false;
+    if(moveMode && !_moved) confirmMove(s2c(e.clientX,e.clientY));
   });
   wrap.addEventListener('wheel', e=>{
     e.preventDefault();
@@ -512,6 +524,33 @@ function renderMk(){
 
 const NS='http://www.w3.org/2000/svg';
 function el(tag,attrs){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));return e;}
+
+// ── MODE DÉPLACEMENT DE PIN ──
+function enterMoveMode(obsId){
+  const o = obs.find(x=>x.id===obsId);
+  if(!o) return;
+  moveMode=true; moveObsId=obsId;
+  const lbl = o.pinLabel || String(o.id).padStart(2,'0');
+  document.getElementById('move-bar-txt').textContent = 'Déplacer OBS-'+String(obsId).padStart(3,'0')+' ('+lbl+') — appuyer pour repositionner';
+  document.getElementById('move-bar').style.display='flex';
+  document.getElementById('map-hint').style.opacity='0';
+}
+
+function cancelMove(){
+  moveMode=false; moveObsId=null;
+  document.getElementById('move-bar').style.display='none';
+  document.getElementById('map-hint').style.opacity='1';
+}
+
+function confirmMove(pos){
+  if(moveObsId===null) return;
+  const o = obs.find(x=>x.id===moveObsId);
+  if(o){ o.pos=pos; autosave().catch(()=>{}); }
+  cancelMove();
+  renderMk();
+  toast('Pin repositionné');
+}
+
 
 function mkObs(svg,o){
   const sx=o.pos.x*sc+px, sy=o.pos.y*sc+py;
@@ -593,7 +632,24 @@ function mkObs(svg,o){
   txts.textContent=lbl; g.appendChild(txts);
   txt.textContent=lbl; g.appendChild(txt);
 
-  g.addEventListener('click',e=>{e.stopPropagation();openEditObs(o.id);});
+  // Tap court → ouvrir fiche | Appui long → mode déplacement
+  let _mkLpt=null, _mkMoved=false;
+  g.addEventListener('pointerdown', e=>{
+    e.stopPropagation();
+    _mkMoved=false;
+    _mkLpt=setTimeout(()=>{
+      if(!_mkMoved){
+        navigator.vibrate&&navigator.vibrate([30,30,60]);
+        enterMoveMode(o.id);
+      }
+    }, 600);
+  });
+  g.addEventListener('pointermove', e=>{ _mkMoved=true; clearTimeout(_mkLpt); });
+  g.addEventListener('pointerup', e=>{
+    e.stopPropagation();
+    clearTimeout(_mkLpt);
+    if(!_mkMoved && !moveMode) openEditObs(o.id);
+  });
   svg.appendChild(g);
 }
 
