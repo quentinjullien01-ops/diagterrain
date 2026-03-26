@@ -632,14 +632,14 @@ function saveObs(){
   if(curType==='fissure') d.fissure={larg:document.getElementById('f-larg').value,long:document.getElementById('f-long').value,ori:document.getElementById('f-ori').value,act:document.getElementById('f-act').value};
   if(editId!==null){const o=obs.find(x=>x.id===editId);Object.assign(o,d);}
   else{d.id=nxtId();d.pos=pendPos;obs.push(d);}
-  closeSheet(); renderMk(); autosave(); toast('Enregistré');
+  closeSheet(); renderMk(); autosave().catch(()=>{}); toast('Enregistré');
 }
 
 function deleteObs(){
   if(editId===null){closeSheet();return;}
   if(!confirm('Supprimer ?'))return;
   obs=obs.filter(o=>o.id!==editId);
-  closeSheet(); renderMk(); renderList(); autosave(); toast('Supprimé');
+  closeSheet(); renderMk(); renderList(); autosave().catch(()=>{}); toast('Supprimé');
 }
 
 function openSheet(){document.getElementById('ov').classList.add('on');document.getElementById('obs-sheet').classList.add('on');}
@@ -671,17 +671,26 @@ async function handlePlan(input){
   document.getElementById('up-label').innerHTML='<span style="color:var(--ac);font-family:var(--mo);font-size:12px">'+f.name+'</span><br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
   chkSetup();
 }
-function startMission(){
+async function startMission(){
   proj={name:document.getElementById('p-name').value.trim(),ref:document.getElementById('p-ref').value.trim(),ing:document.getElementById('p-ing').value.trim(),date:new Date().toLocaleDateString('fr-FR')};
   document.getElementById('map-title').textContent=proj.name;
   document.getElementById('map-ref').textContent=proj.ref||'Sans référence';
-  autosave(); showMap(); setTimeout(initMap,80);
+  _eventsReady=false;
+  try{ await autosave(); }catch(e){}
+  showMap(); setTimeout(initMap,80);
 }
 
 // MAP INIT
+let _eventsReady=false;
 function initMap(){
   const cvs=C(), img=new Image();
-  img.onload=()=>{cvs.width=img.width;cvs.height=img.height;cvs.getContext('2d').drawImage(img,0,0);fitMap();setupMapEvents();renderMk();};
+  img.onload=()=>{
+    cvs.width=img.width; cvs.height=img.height;
+    cvs.getContext('2d').drawImage(img,0,0);
+    fitMap();
+    if(!_eventsReady){ setupMapEvents(); _eventsReady=true; }
+    renderMk();
+  };
   img.src=planImg;
 }
 
@@ -718,7 +727,7 @@ function expCSV(){
 }
 
 async function expPDF(){
-  if(!planImg){ toast('Chargez un plan d'abord'); return; }
+  if(!planImg){ toast('Chargez un plan dabord'); return; }
   toast('Génération PDF…');
   const { jsPDF } = window.jspdf;
 
@@ -946,7 +955,8 @@ async function loadJSON(input){
   counter=obs.reduce((m,o)=>Math.max(m,o.id||0),0);
   document.getElementById('map-title').textContent=proj.name||'';
   document.getElementById('map-ref').textContent=proj.ref||'';
-  autosave(); showMap(); setTimeout(initMap,80);
+  try{ await autosave(); }catch(e){}
+  showMap(); setTimeout(initMap,80);
   toast('Mission chargée — '+obs.length+' observations'); input.value='';
 }
 
