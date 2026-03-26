@@ -952,37 +952,48 @@ async function expPDF(){
   const planY=22, planH=PH-planY-marg;
   const planW=PW-2*marg;
 
-  // Dessiner le plan avec pins
-  const cvs=document.getElementById('plan-cvs');
-  let annotated=planImg;
-  if(cvs.width>0){
-    const c=document.createElement('canvas'); c.width=cvs.width; c.height=cvs.height;
-    const ctx=c.getContext('2d');
-    const img=new Image(); img.src=planImg; ctx.drawImage(img,0,0);
-    // Calculer l'échelle pour les pins (taille adaptée à la résolution du canvas)
-    const pinScale = Math.max(cvs.width, cvs.height) / 800;
-    const pinR = Math.round(16 * pinScale);
-    const fontSize = Math.round(11 * pinScale);
-    obs.forEach(o=>{
-      if(!o.pos)return;
-      const col=o.type==='fissure'?[224,82,82]:o.type==='visuel'?[74,158,255]:[154,151,160];
-      const lbl=o.pinLabel||String(o.id).padStart(2,'0');
-      const x=o.pos.x, y=o.pos.y;
-      // Losange
-      ctx.save(); ctx.translate(x, y-pinR*1.5); ctx.rotate(Math.PI/4);
-      ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`;
-      ctx.beginPath(); ctx.roundRect(-pinR,-pinR,pinR*2,pinR*2, Math.round(3*pinScale)); ctx.fill();
-      ctx.restore();
-      ctx.fillStyle='#000';
-      ctx.font=`bold ${lbl.length>4?Math.round(fontSize*0.75):fontSize}px monospace`;
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(lbl, x, y-pinR*1.5);
-      // Queue
-      ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=Math.round(2*pinScale);
-      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-pinR*0.6); ctx.stroke();
-    });
-    annotated=c.toDataURL('image/jpeg',.92);
-  }
+  // Dessiner le plan avec pins — chargement depuis planImg en mémoire (indépendant du canvas DOM)
+  let annotated = await new Promise(resolve => {
+    if(!planImg){ resolve(null); return; }
+    const baseImg = new Image();
+    baseImg.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = baseImg.width; c.height = baseImg.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(baseImg, 0, 0);
+      // Échelle pins relative à la résolution réelle de l'image
+      const pinScale = Math.max(c.width, c.height) / 800;
+      const pinR = Math.round(16 * pinScale);
+      const fontSize = Math.round(11 * pinScale);
+      obs.forEach(o => {
+        if(!o.pos) return;
+        const col = o.type==='fissure' ? [224,82,82] : o.type==='visuel' ? [74,158,255] : [154,151,160];
+        const lbl = o.pinLabel || String(o.id).padStart(2,'0');
+        const x = o.pos.x, y = o.pos.y;
+        // Losange
+        ctx.save(); ctx.translate(x, y - pinR*1.5); ctx.rotate(Math.PI/4);
+        ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+        ctx.beginPath();
+        try { ctx.roundRect(-pinR, -pinR, pinR*2, pinR*2, Math.round(3*pinScale)); }
+        catch(e) { ctx.rect(-pinR, -pinR, pinR*2, pinR*2); } // fallback si roundRect non dispo
+        ctx.fill();
+        ctx.restore();
+        // Texte
+        ctx.fillStyle = '#000';
+        ctx.font = `bold ${lbl.length>4 ? Math.round(fontSize*0.75) : fontSize}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(lbl, x, y - pinR*1.5);
+        // Queue
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = Math.round(2*pinScale);
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x, y - pinR*0.6); ctx.stroke();
+      });
+      resolve(c.toDataURL('image/jpeg', 0.92));
+    };
+    baseImg.onerror = () => resolve(planImg); // fallback sans pins
+    baseImg.src = planImg;
+  });
+  if(!annotated) annotated = planImg;
 
   // Ajuster l'image au cadre en conservant le ratio
   const tmpImg=new Image(); tmpImg.src=annotated;
