@@ -1097,53 +1097,129 @@ const LOGO_WHITE = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCA
 
 async function expPDF(){
   if(!planImg){ toast('Chargez un plan dabord'); return; }
-  toast('Génération PDF…');
+  toast('Generation PDF...');
   const { jsPDF } = window.jspdf;
+  const ORANGE = [240,165,0];
+  const DARK   = [15,17,23];
+  const SURF   = [26,29,39];
+  const BEIGE  = [255,248,235];  // sous-titres
+  const TXTD   = [30,30,30];     // texte sombre sur fond clair
+  const TXTL   = [220,217,232];  // texte clair sur fond sombre
+  const GRAY   = [120,118,130];
+  const LOGO_W =  + logo_white + r;
+  const LOGO_D =  + logo_dark  + r;
+  const SIREN_TXT = 'BTP INGENIERIE RHONE ALPES - 31 Place Jules Grandclement, 69100 Villeurbanne - www.btp-ingenierie.fr';
 
-  // ── PAGE 1 : PLAN A4 PAYSAGE AVEC PINS ──
-  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
-  const PW=297, PH=210; // A4 paysage mm
-  const marg=12;
-  const FOOTER_H=10; // hauteur pied de page mm
+  // ════════════════════════════════════════════
+  // PAGE DE GARDE  A4 portrait
+  // ════════════════════════════════════════════
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const PW=210, PH=297, marg=15;
 
-  // Fonction pied de page réutilisable
-  const drawFooter=(d,pageNum,total,pw,ph)=>{
-    const fy=ph-FOOTER_H;
-    d.setFillColor(15,17,23); d.rect(0,fy,pw,FOOTER_H,'F');
-    d.setDrawColor(240,165,0); d.setLineWidth(0.3); d.line(marg,fy,pw-marg,fy);
-    // Logo à gauche
-    try{ d.addImage(LOGO_DARK,'JPEG',marg,fy+1.5,28,6.5); }catch(e){}
-    // Infos mission au centre
-    d.setFontSize(6.5); d.setTextColor(154,151,160); d.setFont('helvetica','normal');
-    const missionTxt=(proj.ref?proj.ref+' — ':'')+( proj.name||'');
-    d.text(missionTxt, pw/2, fy+4.5, {align:'center', maxWidth:pw-100});
-    d.text(proj.ing+' · '+proj.date, pw/2, fy+8, {align:'center'});
-    // Page à droite
-    d.setFontSize(7); d.setTextColor(240,165,0); d.setFont('helvetica','bold');
-    d.text(pageNum+'/'+total, pw-marg, fy+5.5, {align:'right'});
-  };
+  // Fond blanc
+  doc.setFillColor(255,255,255); doc.rect(0,0,PW,PH,'F');
 
-  // Compter total pages pour numérotation
-  const totalPdfPages = 1 + Math.ceil(obs.length / 20) + 1;
+  // Logo centré en haut
+  try{ doc.addImage(LOGO_W,'JPEG', PW/2-45, 18, 90, 22); }catch(e){}
+
+  // Trait orange sous le logo
+  doc.setDrawColor(...ORANGE); doc.setLineWidth(0.8);
+  doc.line(marg, 46, PW-marg, 46);
+
+  // Bloc orange gauche "Rapport – Diagnostic structurel"
+  doc.setFillColor(...ORANGE);
+  doc.rect(marg, 56, 95, 14, 'F');
+  doc.setFontSize(11); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+  doc.text('Rapport - Diagnostic structurel', marg+4, 65);
+
+  // Zone image plan (rectangle représentatif)
+  doc.setFillColor(230,230,230); doc.rect(marg, 56, PW-2*marg, 65, 'F');
+  doc.setFillColor(...ORANGE); doc.rect(marg, 56, 95, 14, 'F');
+  doc.setFontSize(11); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+  doc.text('Rapport - Diagnostic structurel', marg+4, 65);
+
+  // Insérer le plan annoté comme image de fond du bloc
+  if(planImg){
+    try{
+      const baseImg=new Image(); baseImg.src=planImg;
+      await new Promise(r=>{baseImg.onload=r;baseImg.onerror=r;});
+      const iw=baseImg.width||1, ih=baseImg.height||1;
+      const bw=PW-2*marg, bh=65;
+      const sc=Math.max(bw/iw, bh/ih);
+      doc.addImage(planImg,'JPEG',marg,56,bw,bh,'','FAST');
+      // Remettre le bandeau orange par-dessus
+      doc.setFillColor(...ORANGE); doc.rect(marg,56,95,14,'F');
+      doc.setFontSize(11); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+      doc.text('Rapport - Diagnostic structurel', marg+4, 65);
+    }catch(e){}
+  }
+
+  // Trait vertical orange gauche
+  doc.setDrawColor(...ORANGE); doc.setLineWidth(2.5);
+  doc.line(marg, 130, marg, 185);
+
+  // Titre mission
+  doc.setFontSize(14); doc.setTextColor(...ORANGE); doc.setFont('helvetica','bold');
+  doc.text(proj.name||'Diagnostic structurel', marg+6, 140);
+  // Sous-titre type
+  doc.setFontSize(9); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+  doc.text('Rapport de diagnostic visuel', marg+6, 148);
+
+  // Client / adresse
+  doc.setFontSize(11); doc.setTextColor(...TXTD); doc.setFont('helvetica','bold');
+  doc.text(proj.name||'—', marg+6, 162);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text(proj.ref ? 'Ref. '+proj.ref : '', marg+6, 169);
+  doc.text('Ingenieur : '+proj.ing, marg+6, 176);
+
+  // Cartouche bas de page de garde
+  const cY=230, cH=22;
+  doc.setDrawColor(180,180,180); doc.setLineWidth(0.3);
+  doc.rect(marg, cY, PW-2*marg, cH);
+  const cols2=[{l:'Reference',v:proj.ref||'—'},{l:'Auteur',v:proj.ing},{l:'Verificateur',v:'—'},{l:'Date',v:proj.date},{l:'Indice',v:'0'}];
+  const cw2=(PW-2*marg)/cols2.length;
+  cols2.forEach((c,i)=>{
+    const cx=marg+i*cw2;
+    if(i>0){ doc.setDrawColor(180,180,180); doc.line(cx,cY,cx,cY+cH); }
+    doc.setFontSize(7); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+    doc.text(c.l, cx+cw2/2, cY+6, {align:'center'});
+    doc.setFontSize(9); doc.setTextColor(...TXTD); doc.setFont('helvetica','bold');
+    doc.text(String(c.v), cx+cw2/2, cY+15, {align:'center', maxWidth:cw2-4});
+  });
+
+  // Pied de page de garde
+  doc.setFontSize(6.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+  doc.text('GROUPE BTP INGENIERIE - AGENCE SUD', PW/2, PH-14, {align:'center'});
+  doc.text(SIREN_TXT, PW/2, PH-10, {align:'center'});
+  doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4);
+  doc.line(marg, PH-18, PW-marg, PH-18);
+
+  // ════════════════════════════════════════════
+  // PAGE 2 : PLAN ANNOTÉ  A4 paysage
+  // ════════════════════════════════════════════
+  doc.addPage('a4','landscape');
+  const LW=297, LH=210;
+  const FOOT=12;
+
+  // Fond sombre
+  doc.setFillColor(...DARK); doc.rect(0,0,LW,LH,'F');
 
   // En-tête
-  doc.setFillColor(15,17,23);
-  doc.rect(0,0,PW,18,'F');
-  doc.setFontSize(10); doc.setTextColor(240,165,0); doc.setFont('helvetica','bold');
-  doc.text('DIAGTERRAIN — BTP INGÉNIERIE', marg, 11);
-  doc.setTextColor(154,151,160); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-  doc.text(proj.name||'', PW/2, 11, {align:'center'});
-  doc.text('Réf. '+(proj.ref||'—')+'  ·  '+proj.ing+'  ·  '+proj.date, PW-marg, 11, {align:'right'});
+  doc.setFillColor(...SURF); doc.rect(0,0,LW,18,'F');
+  doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4); doc.line(0,18,LW,18);
+  // Logo en-tête à droite
+  try{ doc.addImage(LOGO_D,'JPEG', LW-55, 1, 48, 15); }catch(e){}
+  // Infos mission haut gauche
+  doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+  doc.text((proj.name||'').substring(0,60), marg, 8);
+  doc.setFontSize(7); doc.text('Ref. '+(proj.ref||'—')+'  |  '+proj.ing+'  |  '+proj.date, marg, 14);
 
-  // Trait séparateur
-  doc.setDrawColor(240,165,0); doc.setLineWidth(0.4);
-  doc.line(marg,18,PW-marg,18);
+  // Titre section orange
+  doc.setFillColor(...ORANGE); doc.rect(0,18,LW,10,'F');
+  doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+  doc.text('PLAN ANNOTE DES OBSERVATIONS', marg, 25);
 
-  // Zone plan
-  const planY=22, planH=PH-planY-marg;
-  const planW=PW-2*marg;
-
-  // Dessiner le plan avec pins — chargement depuis planImg en mémoire (indépendant du canvas DOM)
+  // Construire le plan annoté
   let annotated = await new Promise(resolve => {
     if(!planImg){ resolve(null); return; }
     const baseImg = new Image();
@@ -1152,7 +1228,6 @@ async function expPDF(){
       c.width = baseImg.width; c.height = baseImg.height;
       const ctx = c.getContext('2d');
       ctx.drawImage(baseImg, 0, 0);
-      // Échelle pins relative à la résolution réelle de l'image
       const pinScale = Math.max(c.width, c.height) / 800;
       const pinR = Math.round(16 * pinScale);
       const fontSize = Math.round(11 * pinScale);
@@ -1161,197 +1236,166 @@ async function expPDF(){
         const col = o.type==='fissure' ? [224,82,82] : o.type==='visuel' ? [74,158,255] : [154,151,160];
         const lbl = o.pinLabel || String(o.id).padStart(2,'0');
         const x = o.pos.x, y = o.pos.y;
-        // ── Pin sphérique ──
-      const cy = y - pinR*1.5;
-      ctx.beginPath(); ctx.ellipse(x+1, y+3, 4*pinScale, 1.5*pinScale, 0, 0, Math.PI*2);
-      ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(x-2*pinScale, cy+pinR*0.7); ctx.lineTo(x, y+2); ctx.lineTo(x+2*pinScale, cy+pinR*0.7);
-      ctx.fillStyle='#999'; ctx.fill();
-      ctx.beginPath(); ctx.moveTo(x-0.5*pinScale, cy+pinR*0.75); ctx.lineTo(x, y+2); ctx.lineTo(x+0.5*pinScale, cy+pinR*0.75);
-      ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.fill();
-      ctx.beginPath(); ctx.arc(x, cy, pinR, 0, Math.PI*2);
-      ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.fill();
-      ctx.beginPath(); ctx.ellipse(x, cy+pinR*0.85, pinR*0.8, pinR*0.25, 0, 0, Math.PI*2);
-      ctx.fillStyle=`rgba(${Math.max(0,col[0]-60)},${Math.max(0,col[1]-60)},${Math.max(0,col[2]-60)},0.4)`; ctx.fill();
-      const grad=ctx.createRadialGradient(x-pinR*0.3, cy-pinR*0.35, 0, x, cy, pinR);
-      grad.addColorStop(0,'rgba(255,255,255,0.7)'); grad.addColorStop(0.6,'rgba(255,255,255,0)');
-      ctx.beginPath(); ctx.arc(x, cy, pinR, 0, Math.PI*2);
-      ctx.fillStyle=grad; ctx.fill();
-      const tfs=lbl.length>4?Math.round(fontSize*0.75):fontSize;
-      ctx.font=`bold ${tfs}px monospace`;
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillText(lbl, x+0.5, cy+1.5);
-      ctx.fillStyle='#fff'; ctx.fillText(lbl, x, cy+0.5);
+        const cy = y - pinR*1.5;
+        ctx.beginPath(); ctx.ellipse(x+1, y+3, 4*pinScale, 1.5*pinScale, 0, 0, Math.PI*2);
+        ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(x-2*pinScale, cy+pinR*0.7); ctx.lineTo(x, y+2); ctx.lineTo(x+2*pinScale, cy+pinR*0.7);
+        ctx.fillStyle='#999'; ctx.fill();
+        ctx.beginPath(); ctx.arc(x, cy, pinR, 0, Math.PI*2);
+        ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.fill();
+        const grad=ctx.createRadialGradient(x-pinR*0.3, cy-pinR*0.35, 0, x, cy, pinR);
+        grad.addColorStop(0,'rgba(255,255,255,0.7)'); grad.addColorStop(0.6,'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(x, cy, pinR, 0, Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+        const tfs=lbl.length>4?Math.round(fontSize*0.75):fontSize;
+        ctx.font=`bold ${tfs}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillText(lbl, x+0.5, cy+1.5);
+        ctx.fillStyle='#fff'; ctx.fillText(lbl, x, cy+0.5);
       });
       resolve(c.toDataURL('image/jpeg', 0.92));
     };
-    baseImg.onerror = () => resolve(planImg); // fallback sans pins
+    baseImg.onerror = () => resolve(planImg);
     baseImg.src = planImg;
   });
   if(!annotated) annotated = planImg;
 
-  // Ajuster l'image au cadre en conservant le ratio
+  // Placer le plan
+  const planAreaY=28, planAreaH=LH-planAreaY-FOOT-4;
+  const planAreaW=LW-2*marg;
   const tmpImg=new Image(); tmpImg.src=annotated;
-  await new Promise(r=>{tmpImg.onload=r;});
-  const iW=tmpImg.width, iH=tmpImg.height;
-  const scaleX=planW/iW, scaleY=planH/iH;
-  const scale=Math.min(scaleX,scaleY);
-  const dW=iW*scale, dH=iH*scale;
-  const dX=marg+(planW-dW)/2, dY=planY+(planH-dH)/2;
-  doc.addImage(annotated,'JPEG',dX,dY,dW,dH);
+  await new Promise(r=>{tmpImg.onload=r;tmpImg.onerror=r;});
+  const iW=tmpImg.width||1, iH=tmpImg.height||1;
+  const scX=planAreaW/iW, scY=planAreaH/iH;
+  const scPlan=Math.min(scX,scY);
+  const dW=iW*scPlan, dH=iH*scPlan;
+  const dX=marg+(planAreaW-dW)/2, dY=planAreaY+(planAreaH-dH)/2;
+  try{ doc.addImage(annotated,'JPEG',dX,dY,dW,dH); }catch(e){}
 
-  // Légende + pied de page page 1
-  drawFooter(doc, 1, totalPdfPages, PW, PH);
-  // Légende types dans le footer
-  doc.setFontSize(6.5); doc.setTextColor(154,151,160);
-  const legY=PH-FOOTER_H+3.5;
-  doc.setFillColor(224,82,82); doc.rect(marg+32,legY-2,3,3,'F');
-  doc.text('Fissuration',marg+36,legY);
-  doc.setFillColor(74,158,255); doc.rect(marg+56,legY-2,3,3,'F');
-  doc.text('Visuel',marg+60,legY);
-  doc.setFillColor(154,151,160); doc.rect(marg+74,legY-2,3,3,'F');
-  doc.text('Autre',marg+78,legY);
+  // Légende
+  const legY=LH-FOOT+1;
+  doc.setFillColor(...SURF); doc.rect(0,LH-FOOT,LW,FOOT,'F');
+  doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3); doc.line(0,LH-FOOT,LW,LH-FOOT);
+  try{ doc.addImage(LOGO_D,'JPEG', marg, LH-FOOT+0.5, 26, 9); }catch(e){}
+  doc.setFontSize(6); doc.setTextColor(...GRAY);
+  doc.setFillColor(224,82,82); doc.rect(marg+30, legY+2, 3, 3, 'F');
+  doc.text('Fissuration', marg+34, legY+5);
+  doc.setFillColor(74,158,255); doc.rect(marg+56, legY+2, 3, 3, 'F');
+  doc.text('Visuel', marg+60, legY+5);
+  doc.setFillColor(154,151,160); doc.rect(marg+74, legY+2, 3, 3, 'F');
+  doc.text('Autre', marg+78, legY+5);
+  doc.setTextColor(...ORANGE); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('2', LW-marg, legY+6, {align:'right'});
 
-  // ── PAGES SUIVANTES : TABLEAU DES OBSERVATIONS PORTRAIT ──
-  const ROW_H=8; // hauteur ligne mm
+  // ════════════════════════════════════════════
+  // PAGES TABLEAU OBSERVATIONS  A4 portrait
+  // ════════════════════════════════════════════
+  const PA=210, PB=297;
+  const ROW_H=8;
   const COLS=[
-    {label:'Réf.', w:18},
-    {label:'Pin', w:16},
-    {label:'Type', w:18},
-    {label:'Localisation', w:52},
-    {label:'Observation', w:62},
-    {label:'Date', w:24},
+    {label:'Ref.', w:18},{label:'Pin', w:16},{label:'Type', w:16},
+    {label:'Localisation', w:54},{label:'Observation', w:64},{label:'Date', w:22},
   ];
-  const FISS_COLS=[
-    {label:'L. (mm)', w:16},
-    {label:'Long. (cm)', w:18},
-    {label:'Orient.', w:20},
-    {label:'Activité', w:18},
-  ];
-  const allCols=[...COLS,...FISS_COLS];
-  const totalW=allCols.reduce((a,c)=>a+c.w,0); // ~244
-  const PA=210, PB=297; // A4 portrait
-  const mP=10;
-  const tableW=PA-2*mP;
-  const scFactor=tableW/totalW;
+  const FCOLS=[{label:'L.(mm)', w:16},{label:'Long.(cm)', w:18},{label:'Orient.', w:20},{label:'Activite', w:16}];
+  const allC=[...COLS,...FCOLS];
+  const totW=allC.reduce((a,c)=>a+c.w,0);
+  const mP=12, tableW=PA-2*mP;
+  const scF=tableW/totW;
+  const totalPg = 2 + Math.ceil(obs.length/18);
 
-  function addTablePage(pageNum, totalPages){
+  // Fonction en-tête de page tableau
+  function addTabPage(pgN){
     doc.addPage('a4','portrait');
-    // En-tête
-    doc.setFillColor(15,17,23); doc.rect(0,0,PA,16,'F');
-    doc.setFontSize(9); doc.setTextColor(240,165,0); doc.setFont('helvetica','bold');
-    doc.text('RELEVÉ DES OBSERVATIONS', mP, 10);
-    doc.setTextColor(154,151,160); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-    doc.text(proj.name||'', PA/2, 10, {align:'center'});
-    doc.setDrawColor(240,165,0); doc.setLineWidth(0.4);
-    doc.line(mP,16,PA-mP,16);
+    // Fond blanc
+    doc.setFillColor(255,255,255); doc.rect(0,0,PA,PB,'F');
+    // En-tête : infos gauche + logo droit
+    doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+    doc.text(proj.name||'', mP, 8);
+    doc.text('Etude structurelle', mP, 13);
+    doc.text('Reference : '+(proj.ref||'—'), mP, 18);
+    try{ doc.addImage(LOGO_W,'JPEG', PA-mP-42, 4, 40, 12); }catch(e){}
+    // Trait orange sous l'en-tête
+    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.5);
+    doc.line(mP, 22, PA-mP, 22);
+    // Titre section
+    doc.setFillColor(...ORANGE); doc.rect(mP, 25, tableW, 9, 'F');
+    doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+    doc.text('RELEVE DES OBSERVATIONS', mP+3, 31);
     // Pied de page
-    drawFooter(doc, pageNum, totalPdfPages, PA, PB);
-    return 22; // Y de départ du tableau
+    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3);
+    doc.line(mP, PB-14, PA-mP, PB-14);
+    doc.setFontSize(6.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+    doc.text(SIREN_TXT, PA/2, PB-10, {align:'center'});
+    doc.text('BTP INGENIERIE RHONE ALPES - 31 Place Jules Grandclement, 69100 Villeurbanne', PA/2, PB-6, {align:'center'});
+    doc.setTextColor(...ORANGE); doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text(String(pgN), PA-mP, PB-8, {align:'right'});
+    return 37;
   }
 
-  const totalPages=Math.ceil(obs.length/20)+1;
-  const ROWS_PER_PAGE=Math.floor((PB-40)/ROW_H);
-  let curY=0, curPage=2;
-
-  // En-têtes colonnes
-  function drawHeaders(y){
-    doc.setFillColor(30,35,55); doc.rect(mP,y,tableW,ROW_H,'F');
-    doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(240,165,0);
+  // Fonction en-têtes colonnes
+  function drawHdrs(y){
+    doc.setFillColor(...SURF); doc.rect(mP, y, tableW, ROW_H, 'F');
+    doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...ORANGE);
     let cx=mP;
-    allCols.forEach(col=>{
-      const cw=col.w*scFactor;
-      doc.text(col.label, cx+1.5, y+5, {maxWidth:cw-2});
+    allC.forEach(col=>{
+      const cw=col.w*scF;
+      doc.text(col.label, cx+1.5, y+5.5, {maxWidth:cw-2});
       cx+=cw;
     });
-    // Lignes verticales header
-    doc.setDrawColor(60,65,85); doc.setLineWidth(0.2);
+    // Séparateurs
+    doc.setDrawColor(50,55,75); doc.setLineWidth(0.15);
     cx=mP;
-    allCols.forEach(col=>{
-      const cw=col.w*scFactor;
-      doc.line(cx,y,cx,y+ROW_H);
-      cx+=cw;
-    });
+    allC.forEach(col=>{ const cw=col.w*scF; doc.line(cx,y,cx,y+ROW_H); cx+=cw; });
     doc.line(cx,y,cx,y+ROW_H);
-    doc.line(mP,y,PA-mP,y);
-    doc.line(mP,y+ROW_H,PA-mP,y+ROW_H);
+    doc.line(mP,y,PA-mP,y); doc.line(mP,y+ROW_H,PA-mP,y+ROW_H);
     return y+ROW_H;
   }
 
-  // Première page tableau
-  curY=addTablePage(curPage, totalPages);
-  curY=drawHeaders(curY);
+  let curY=0, curPg=3;
+  curY = addTabPage(curPg);
+  curY = drawHdrs(curY);
 
   obs.forEach((o,idx)=>{
-    // Nouvelle page si nécessaire
-    if(curY+ROW_H > PB-FOOTER_H-4){
-      curPage++;
-      curY=addTablePage(curPage, totalPages);
-      curY=drawHeaders(curY);
-    }
-
-    // Couleur de fond alternée
-    if(idx%2===0){ doc.setFillColor(26,29,39); doc.rect(mP,curY,tableW,ROW_H,'F'); }
-
-    doc.setFontSize(6.5); doc.setFont('helvetica','normal');
-    const col=o.type==='fissure'?[224,82,82]:o.type==='visuel'?[74,158,255]:[154,151,160];
+    if(curY+ROW_H > PB-18){ curPg++; curY=addTabPage(curPg); curY=drawHdrs(curY); }
+    // Fond alterné
+    if(idx%2===0){ doc.setFillColor(248,248,252); doc.rect(mP,curY,tableW,ROW_H,'F'); }
+    const col=o.type==='fissure'?[200,40,40]:o.type==='visuel'?[30,100,200]:[100,100,120];
     const lbl=o.pinLabel||String(o.id).padStart(2,'0');
-
     const rowData=[
-      'OBS-'+String(o.id).padStart(3,'0'),
-      lbl,
-      o.type.toUpperCase(),
-      o.loc||'',
-      o.text||'',
-      o.date?.split(' ')[0]||'',
-      o.fissure?.larg||'',
-      o.fissure?.long||'',
-      o.fissure?.ori||'',
-      o.fissure?.act||'',
+      'OBS-'+String(o.id).padStart(3,'0'), lbl, o.type.toUpperCase(),
+      o.loc||'', o.text||'', o.date?.split(' ')?.[0]||'',
+      o.fissure?.larg||'', o.fissure?.long||'', o.fissure?.ori||'', o.fissure?.act||'',
     ];
-
     let cx=mP;
     rowData.forEach((val,ci)=>{
-      const cw=allCols[ci].w*scFactor;
-      // Couleur type
+      const cw=allC[ci].w*scF;
       if(ci===2){ doc.setTextColor(...col); doc.setFont('helvetica','bold'); }
-      else { doc.setTextColor(220,217,232); doc.setFont('helvetica','normal'); }
-      doc.text(String(val||''), cx+1.5, curY+5, {maxWidth:cw-3});
+      else{ doc.setTextColor(...TXTD); doc.setFont('helvetica','normal'); }
+      doc.setFontSize(6.5);
+      doc.text(String(val||''), cx+1.5, curY+5.5, {maxWidth:cw-3});
       cx+=cw;
     });
-
-    // Lignes
-    doc.setDrawColor(40,45,65); doc.setLineWidth(0.15);
+    // Bordures
+    doc.setDrawColor(200,200,210); doc.setLineWidth(0.12);
     cx=mP;
-    allCols.forEach(col2=>{
-      const cw=col2.w*scFactor;
-      doc.line(cx,curY,cx,curY+ROW_H);
-      cx+=cw;
-    });
+    allC.forEach(col2=>{ const cw=col2.w*scF; doc.line(cx,curY,cx,curY+ROW_H); cx+=cw; });
     doc.line(cx,curY,cx,curY+ROW_H);
     doc.line(mP,curY+ROW_H,PA-mP,curY+ROW_H);
-
     curY+=ROW_H;
 
-    // Photos sous la ligne si présentes
+    // Photos
     if((o.photos||[]).length>0){
-      const phH=22;
-      if(curY+phH > PB-FOOTER_H-4){ curPage++; curY=addTablePage(curPage,totalPages); curY=drawHeaders(curY); }
+      const phH=24;
+      if(curY+phH>PB-18){ curPg++; curY=addTabPage(curPg); curY=drawHdrs(curY); }
       let px2=mP+2;
       for(const ph of o.photos){
         if(!ph.src) continue;
-        try{
-          doc.addImage(ph.src,'JPEG',px2,curY+1,18,16);
-          px2+=20;
-          if(px2+20>PA-mP) break;
-        }catch(e){}
+        try{ doc.addImage(ph.src,'JPEG',px2,curY+1,20,18); px2+=22; if(px2+22>PA-mP) break; }catch(e){}
       }
       curY+=phH;
     }
   });
 
   doc.save((proj.ref||'mission')+'_rapport.pdf');
-  toast('PDF généré');
+  toast('PDF genere');
 }
 
 // JSON IMPORT
