@@ -2,56 +2,59 @@ const CACHE = 'diagterrain-v24';
 const ASSETS = [
   '/diagterrain/',
   '/diagterrain/index.html',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap'
 ];
 
-// Installation : mise en cache des assets
+// Installation — mise en cache minimale (pas les CDN, trop lourds)
 self.addEventListener('install', e => {
+  // skipWaiting immédiat — pas d'attente de fermeture des onglets
+  self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(cache => {
-      // On tente chaque asset individuellement pour ne pas bloquer si l'un échoue
-      return Promise.allSettled(ASSETS.map(url => cache.add(url).catch(() => {})));
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE).then(cache =>
+      Promise.allSettled(ASSETS.map(url => cache.add(url).catch(() => {})))
+    )
   );
 });
 
-// Activation : nettoyage des anciens caches
+// Activation — nettoyer les anciens caches et prendre le contrôle immédiatement
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim()) // prendre le contrôle de tous les onglets ouverts
   );
 });
 
-// Fetch : cache-first pour les assets, network-first pour le reste
+// Fetch — network-first pour index.html (toujours la version fraîche)
+//          cache-first pour les assets statiques
 self.addEventListener('fetch', e => {
-  // Ne pas intercepter les requêtes non-GET
   if (e.request.method !== 'GET') return;
 
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(response => {
-        // Mettre en cache les nouvelles ressources valides
-        if (response && response.status === 200 && response.type !== 'opaque') {
-          const clone = response.clone();
-          caches.open(CACHE).then(cache => cache.put(e.request, clone));
-        }
-        return response;
-      }).catch(() => {
-        // Hors ligne et non en cache : page de fallback
-        if (e.request.destination === 'document') {
-          return caches.match('/diagterrain/index.html');
-        }
-      });
-    })
-  );
-});
+  const url = new URL(e.request.url);
 
-// Message de mise à jour depuis l'app
-self.addEventListener('message', e => {
-  if (e.data === 'skipWaiting') self.skipWaiting();
-});
+  // index.html et racine → network-first avec fallback cache
+  if (url.pathname.endsWith('/diagterrain/') || url.pathname.endsWith('index.html')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE).then(cache => cache.put(e.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // CDN (pdfjs, jspdf, utif, fonts) → cache-first
+  if (url.origin !== self.location.origin) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE).then(cache => cache.put(e.request, clon
