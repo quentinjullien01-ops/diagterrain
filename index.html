@@ -1266,6 +1266,7 @@ const LOGO_WHITE = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCA
 async function expPDF(){
   if(!planImg){ toast('Chargez un plan dabord'); return; }
   toast('Generation PDF...');
+  try{
   const { jsPDF } = window.jspdf;
   const ORANGE = [240,165,0];
   const DARK   = [15,17,23];
@@ -1280,6 +1281,7 @@ async function expPDF(){
   // PAGE 1 : PLAN ANNOTÉ  A4 paysage
   // ════════════════════════════════════════════
   const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+  const marg=15;
   const LW=297, LH=210;
   const FOOT=12;
 
@@ -1478,6 +1480,7 @@ async function expPDF(){
 
   doc.save((proj.ref||'mission')+'_rapport.pdf');
   toast('PDF genere');
+  }catch(err){ console.error('PDF error:', err); toast('Erreur PDF : '+err.message); }
 }
 
 // JSON IMPORT
