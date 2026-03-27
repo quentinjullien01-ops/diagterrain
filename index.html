@@ -1396,7 +1396,39 @@ let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('ibanner').style.display='flex';});
 function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{deferredPrompt=null;document.getElementById('ibanner').style.display='none';if(r.outcome==='accepted')toast('DiagTerrain installée !');});}
 window.addEventListener('appinstalled',()=>{document.getElementById('ibanner').style.display='none';toast('Installée avec succès');});
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));}
+
+// Service Worker — enregistrement + vérification auto des mises à jour
+if('serviceWorker' in navigator){
+  window.addEventListener('load', async ()=>{
+    try{
+      const reg = await navigator.serviceWorker.register('sw.js');
+
+      // Vérifier une mise à jour à chaque ouverture
+      reg.update();
+
+      // Quand une nouvelle version est prête → l'activer immédiatement
+      reg.addEventListener('updatefound', ()=>{
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', ()=>{
+          if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+            // Forcer l'activation sans attendre la fermeture de l'onglet
+            newWorker.postMessage('skipWaiting');
+          }
+        });
+      });
+
+      // Quand le SW change → recharger la page pour prendre la nouvelle version
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+        if(!refreshing){
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+
+    }catch(e){ console.warn('SW registration failed:', e); }
+  });
+}
 
 // INIT — afficher la carte "mission en cours" au démarrage
 window.addEventListener('DOMContentLoaded', ()=>{ migrateOldData(); renderAffairesList(); });
