@@ -375,6 +375,7 @@ select.fi-sm option{background:var(--sf)}
 <!-- MAP -->
 <div class="scr" id="scr-map">
   <div class="hdr">
+    <button class="ib" onclick="goHome()" title="Accueil"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>
     <div style="flex:1"><div class="hdr-t" id="map-title">—</div><div class="hdr-s" id="map-ref">—</div></div>
   </div>
   <div class="map-wrap" id="map-wrap">
@@ -415,19 +416,19 @@ select.fi-sm option{background:var(--sf)}
 
 <!-- EXPORT -->
 <div class="scr" id="scr-exp">
-  <div class="hdr"><button class="ib" onclick="showMap()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="hdr-t">Export</div></div>
+  <div class="hdr"><button class="ib" onclick="showMap()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="hdr-t">Export</div><button class="ib" onclick="goHome()" title="Accueil"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button></div>
   <div style="flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:12px">
     <div class="exp-stats">
       <div class="es"><div class="es-n" id="en-o">0</div><div class="es-l">Obs.</div></div>
       <div class="es"><div class="es-n" id="en-f">0</div><div class="es-l">Fissures</div></div>
       <div class="es"><div class="es-n" id="en-p">0</div><div class="es-l">Photos</div></div>
-
     </div>
-    <div class="ec" onclick="expJSON()"><div class="ec-ic" style="background:var(--ac2)"><svg viewBox="0 0 24 24" stroke="var(--ac)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><h3>Sauvegarde complète</h3><p>JSON — toutes données + photos</p></div><div class="ec-b" style="background:var(--ac2);color:var(--ac)">JSON</div></div>
-    <div class="ec" onclick="expCSV()"><div class="ec-ic" style="background:var(--grn2)"><svg viewBox="0 0 24 24" stroke="var(--grn)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></div><div><h3>Tableau CSV</h3><p>Observations + mesures fissures</p></div><div class="ec-b" style="background:var(--grn2);color:var(--grn)">CSV</div></div>
-    <div class="ec" onclick="expPDF()"><div class="ec-ic" style="background:var(--blu2)"><svg viewBox="0 0 24 24" stroke="var(--blu)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="19" x2="12" y2="19"/></svg></div><div><h3>Rapport PDF</h3><p>Plan A4 paysage + tableau portrait</p></div><div class="ec-b" style="background:var(--blu2);color:var(--blu)">PDF</div></div>
-    <div class="ec" onclick="expFiches()"><div class="ec-ic" style="background:rgba(240,165,0,0.15)"><svg viewBox="0 0 24 24" stroke="var(--ac)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div><div><h3>Fiches PDF</h3><p>Une fiche A4 par observation</p></div><div class="ec-b" style="background:var(--ac2);color:var(--ac)">FICHES</div></div>
-    <div class="ec" onclick="expWord()"><div class="ec-ic" style="background:rgba(37,99,235,0.15)"><svg viewBox="0 0 24 24" stroke="#3b82f6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><h3>Rapport Word</h3><p>Document .docx BTP Ingénierie</p></div><div class="ec-b" style="background:rgba(37,99,235,0.15);color:#3b82f6">DOCX</div></div>
+    <div class="ec" onclick="expJSON()"><div class="ec-ic" style="background:var(--ac2)"><svg viewBox="0 0 24 24" stroke="var(--ac)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><h3>Sauvegarde JSON</h3><p>Toutes données + photos</p></div><div class="ec-b" style="background:var(--ac2);color:var(--ac)">JSON</div></div>
+    <div class="ec" onclick="expPDF()"><div class="ec-ic" style="background:var(--blu2)"><svg viewBox="0 0 24 24" stroke="var(--blu)"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg></div><div><h3>Plan annoté</h3><p>PDF paysage avec pins</p></div><div class="ec-b" style="background:var(--blu2);color:var(--blu)">PDF</div></div>
+    <div class="ec" onclick="expPlanWord()"><div class="ec-ic" style="background:rgba(37,99,235,0.15)"><svg viewBox="0 0 24 24" stroke="#3b82f6"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg></div><div><h3>Plan annoté</h3><p>Word paysage avec pins</p></div><div class="ec-b" style="background:rgba(37,99,235,0.15);color:#3b82f6">DOCX</div></div>
+    <div class="ec" onclick="expFiches()"><div class="ec-ic" style="background:var(--ac2)"><svg viewBox="0 0 24 24" stroke="var(--ac)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div><div><h3>Fiches observations</h3><p>PDF — une fiche A4 par observation</p></div><div class="ec-b" style="background:var(--ac2);color:var(--ac)">PDF</div></div>
+    <div class="ec" onclick="expFichesWord()"><div class="ec-ic" style="background:rgba(37,99,235,0.15)"><svg viewBox="0 0 24 24" stroke="#3b82f6"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div><div><h3>Fiches observations</h3><p>Word — une fiche A4 par observation</p></div><div class="ec-b" style="background:rgba(37,99,235,0.15);color:#3b82f6">DOCX</div></div>
+  </div>
   </div>
   <div class="nav">
     <button class="nb" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
@@ -445,6 +446,7 @@ select.fi-sm option{background:var(--sf)}
       <div class="hdr-t">Récap affaire</div>
       <div class="hdr-s" id="recap-ref">—</div>
     </div>
+    <button class="ib" onclick="goHome()" title="Accueil"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>
   </div>
   <!-- Stats -->
   <div class="recap-stats" id="recap-stats"></div>
@@ -1256,6 +1258,298 @@ function renderExp(){
 
 function expJSON(){dl(new Blob([JSON.stringify({proj,obs,planImg},null,2)],{type:'application/json'}),(proj.ref||'mission')+'_diagterrain.json');toast('Sauvegarde exportée');}
 
+// ── PLAN ANNOTÉ EN WORD ──────────────────────────────────────────────
+async function expPlanWord(){
+  if(!planImg){ toast('Chargez un plan dabord'); return; }
+  if(typeof JSZip==='undefined'){ toast('JSZip non chargé'); return; }
+  toast('Génération Word plan...');
+  try{
+    const zip=new JSZip();
+    const ref=proj.ref||'mission';
+    const escX=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ORANGE='F0A500';
+
+    // Construire le plan annoté
+    let annotated = await new Promise(resolve=>{
+      const bi=new Image(); bi.onload=()=>{
+        const c=document.createElement('canvas'); c.width=bi.width; c.height=bi.height;
+        const ctx=c.getContext('2d'); ctx.drawImage(bi,0,0);
+        const ps=Math.max(c.width,c.height)/800, pinR=Math.round(16*ps), fs=Math.round(11*ps);
+        obs.forEach(o=>{
+          if(!o.pos)return;
+          const col=o.type==='fissure'?[224,82,82]:o.type==='visuel'?[74,158,255]:o.type==='sondage'?[76,175,125]:[154,151,160];
+          const lbl=o.pinLabel||String(o.id).padStart(2,'0');
+          const x=o.pos.x,y=o.pos.y,cy=y-pinR*1.5;
+          ctx.beginPath();ctx.arc(x,cy,pinR,0,Math.PI*2);ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`;ctx.fill();
+          const g=ctx.createRadialGradient(x-pinR*0.3,cy-pinR*0.35,0,x,cy,pinR);
+          g.addColorStop(0,'rgba(255,255,255,0.7)');g.addColorStop(0.6,'rgba(255,255,255,0)');
+          ctx.beginPath();ctx.arc(x,cy,pinR,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+          const tfs=lbl.length>4?Math.round(fs*0.75):fs;
+          ctx.font=`bold ${tfs}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillText(lbl,x+0.5,cy+1.5);
+          ctx.fillStyle='#fff';ctx.fillText(lbl,x,cy+0.5);
+        });
+        resolve(c.toDataURL('image/jpeg',0.92));
+      };
+      bi.onerror=()=>resolve(planImg); bi.src=planImg;
+    });
+
+    const b64=annotated.split(',')[1];
+    zip.folder('word/media').file('plan.jpg',b64,{base64:true});
+
+    // A4 paysage: 16838 x 11906, marges 720 twips (~1.27cm)
+    // Largeur utile: 16838-1440=15398 twips, hauteur utile ~10000
+    // Image pleine largeur: 15398 twips = ~27cm = 9720000 EMU
+    const emuW=9720000, emuH=Math.round(emuW*0.65);
+    let body='';
+    // Titre
+    body+=`<w:p><w:pPr><w:spacing w:after="80"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="24"/><w:color w:val="${ORANGE}"/></w:rPr>
+        <w:t xml:space="preserve">${escX(proj.name||'Plan annoté')}</w:t></w:r></w:p>`;
+    body+=`<w:p><w:pPr><w:spacing w:after="100"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="${ORANGE}"/></w:pBdr></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="888888"/></w:rPr>
+        <w:t xml:space="preserve">Réf. ${escX(proj.ref||'—')} | ${escX(proj.ing||'')} | ${escX(proj.date||'')}</w:t></w:r></w:p>`;
+    // Image plan pleine largeur
+    body+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="60" w:after="60"/></w:pPr>
+      <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
+        <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+          <wp:extent cx="${emuW}" cy="${emuH}"/>
+          <wp:docPr id="1" name="plan"/>
+          <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:nvPicPr><pic:cNvPr id="1" name="plan"/><pic:cNvPicPr/></pic:nvPicPr>
+                <pic:blipFill><a:blip r:embed="rId2" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+                <pic:spPr><a:xfrm><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+              </pic:pic></a:graphicData></a:graphic>
+        </wp:inline></w:drawing></w:r></w:p>`;
+    // Légende
+    body+=`<w:p><w:pPr><w:jc w:val="center"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="E05252"/></w:rPr><w:t xml:space="preserve">● Fissuration   </w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="4A9EFF"/></w:rPr><w:t xml:space="preserve">● Visuel   </w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="4CAF7D"/></w:rPr><w:t xml:space="preserve">● Sondage   </w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="9A97A0"/></w:rPr><w:t xml:space="preserve">● Autre</w:t></w:r></w:p>`;
+
+    const sect=`<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>`;
+    const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:body>${body}<w:sectPr>${sect}</w:sectPr></w:body></w:document>`;
+
+    const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/plan.jpg"/>
+</Relationships>`;
+    const appRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+    const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`;
+    const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+    zip.file('[Content_Types].xml',ct); zip.file('_rels/.rels',appRels);
+    zip.folder('word').file('document.xml',docXml); zip.folder('word').file('styles.xml',styles);
+    zip.folder('word/_rels').file('document.xml.rels',rels);
+    const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const url=URL.createObjectURL(blob);
+    const a2=document.createElement('a'); a2.href=url; a2.download=ref+'_plan.docx'; a2.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast('Plan Word généré !');
+  }catch(err){console.error(err);toast('Erreur : '+err.message);}
+}
+
+// ── FICHES OBSERVATIONS EN WORD ──────────────────────────────────────
+async function expFichesWord(){
+  if(!obs.length){toast('Aucune observation');return;}
+  if(typeof JSZip==='undefined'){toast('JSZip non chargé');return;}
+  toast('Génération Word fiches...');
+  try{
+    const zip=new JSZip();
+    const ref=proj.ref||'mission';
+    const escX=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ORANGE='F0A500';
+    const colHex=t=>t==='fissure'?'E05252':t==='visuel'?'4A9EFF':t==='sondage'?'4CAF7D':'9A97A0';
+    const bord='<w:top w:val="single" w:sz="4" w:color="CCCCCC"/><w:left w:val="single" w:sz="4" w:color="CCCCCC"/><w:bottom w:val="single" w:sz="4" w:color="CCCCCC"/><w:right w:val="single" w:sz="4" w:color="CCCCCC"/>';
+    const cm='<w:tcMar><w:top w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>';
+
+    let imgRels='', mediaFiles={}, imgId=2, bodyAll='';
+    const sect=`<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="720" w:right="720" w:bottom="900" w:left="720"/>`;
+
+    for(let i=0;i<obs.length;i++){
+      const o=obs[i];
+      const lbl=o.pinLabel||String(o.id).padStart(2,'0');
+      const typeLabel=o.type==='fissure'?'FISSURATION':o.type==='visuel'?'OBSERVATION VISUELLE':o.type==='sondage'?'SONDAGE':'OBSERVATION';
+      const titreFiche=`${typeLabel} N°${lbl}${o.loc?' – '+o.loc:''}`;
+      const colObs=colHex(o.type);
+      if(i>0) bodyAll+=`<w:p><w:pPr><w:pageBreakBefore/><w:sectPr>${sect}</w:sectPr></w:pPr></w:p>`;
+
+      // Infos affaire en haut
+      bodyAll+=`<w:p><w:pPr><w:spacing w:after="40"/></w:pPr>
+        <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="14"/><w:color w:val="888888"/></w:rPr>
+          <w:t xml:space="preserve">${escX(proj.name||'')}  |  Réf. ${escX(proj.ref||'—')}  |  ${escX(proj.ing||'')}  |  ${escX(proj.date||'')}</w:t></w:r></w:p>`;
+
+      // Bandeau orange titre fiche
+      bodyAll+=`<w:p><w:pPr><w:spacing w:before="40" w:after="60"/><w:shd w:val="clear" w:color="auto" w:fill="${ORANGE}"/><w:jc w:val="center"/></w:pPr>
+        <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="22"/><w:color w:val="FFFFFF"/></w:rPr>
+          <w:t>${escX(titreFiche)}</w:t></w:r></w:p>`;
+
+      // Photo principale pleine largeur (si dispo)
+      const photos=o.photos||[];
+      if(photos.length>0&&photos[0].src){
+        const b64=photos[0].src.split(',')[1];
+        if(b64){
+          const fn=`img${imgId}.jpg`;
+          mediaFiles[fn]=b64;
+          imgRels+=`<Relationship Id="rId${imgId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${fn}"/>`;
+          const eW=9360000, eH=Math.round(eW*0.65);
+          bodyAll+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="60" w:after="40"/></w:pPr>
+            <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
+              <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+                <wp:extent cx="${eW}" cy="${eH}"/>
+                <wp:docPr id="${imgId}" name="img${imgId}"/>
+                <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                  <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:nvPicPr><pic:cNvPr id="${imgId}" name="img${imgId}"/><pic:cNvPicPr/></pic:nvPicPr>
+                      <pic:blipFill><a:blip r:embed="rId${imgId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+                      <pic:spPr><a:xfrm><a:ext cx="${eW}" cy="${eH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+                    </pic:pic></a:graphicData></a:graphic>
+              </wp:inline></w:drawing></w:r></w:p>`;
+          // Légende photo
+          const fname=photoFileName(o,0);
+          bodyAll+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="80"/></w:pPr>
+            <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:i/><w:sz w:val="16"/><w:color w:val="${ORANGE}"/></w:rPr>
+              <w:t>${escX(fname)}</w:t></w:r></w:p>`;
+          imgId++;
+        }
+      }
+
+      // Bandeau gris Observation
+      bodyAll+=`<w:p><w:pPr><w:spacing w:before="60" w:after="40"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/><w:jc w:val="center"/></w:pPr>
+        <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="20"/></w:rPr>
+          <w:t>Observation</w:t></w:r></w:p>`;
+
+      // Texte observation
+      if(o.text){
+        bodyAll+=`<w:p><w:pPr><w:spacing w:after="40"/><w:ind w:left="360"/></w:pPr>
+          <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/><w:color w:val="${ORANGE}"/></w:rPr><w:t xml:space="preserve">■  </w:t></w:r>
+          <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/></w:rPr><w:t>${escX(o.text)}</w:t></w:r></w:p>`;
+      }
+
+      // Données spécifiques
+      const mkRow=(k,v,fill)=>`<w:tr>
+        <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}
+          <w:tcBorders>${bord}</w:tcBorders>${cm}</w:tcPr>
+          <w:p><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/><w:color w:val="${ORANGE}"/></w:rPr><w:t>${escX(k)}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="7160" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}
+          <w:tcBorders>${bord}</w:tcBorders>${cm}</w:tcPr>
+          <w:p><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/></w:rPr><w:t>${escX(v)}</w:t></w:r></w:p></w:tc>
+      </w:tr>`;
+
+      if(o.type==='fissure'&&o.fissure){
+        const rows=[];
+        if(o.fissure.larg) rows.push(mkRow('Largeur',o.fissure.larg+' mm','F9F9F9'));
+        if(o.fissure.long) rows.push(mkRow('Longueur',o.fissure.long+' cm','FFFFFF'));
+        if(o.fissure.ori) rows.push(mkRow('Orientation',o.fissure.ori,'F9F9F9'));
+        if(o.fissure.act) rows.push(mkRow('Activité',o.fissure.act,'FFFFFF'));
+        if(rows.length){
+          bodyAll+=`<w:p><w:pPr><w:spacing w:before="80" w:after="40"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:pPr>
+            <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  Caractéristiques de la fissure</w:t></w:r></w:p>`;
+          bodyAll+=`<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="2200"/><w:gridCol w:w="7160"/></w:tblGrid>${rows.join('')}</w:tbl>`;
+        }
+      }
+      if(o.type==='sondage'&&o.sondage){
+        const rows=[];
+        if(o.sondage.stype) rows.push(mkRow('Type',o.sondage.stype,'F9F9F9'));
+        if(o.sondage.dim) rows.push(mkRow('Dimensions',o.sondage.dim,'FFFFFF'));
+        if(o.sondage.obs) rows.push(mkRow('Résultat',o.sondage.obs,'F9F9F9'));
+        if(rows.length){
+          bodyAll+=`<w:p><w:pPr><w:spacing w:before="80" w:after="40"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:pPr>
+            <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  Données du sondage</w:t></w:r></w:p>`;
+          bodyAll+=`<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="2200"/><w:gridCol w:w="7160"/></w:tblGrid>${rows.join('')}</w:tbl>`;
+        }
+      }
+
+      // Photos complémentaires (2 par ligne)
+      if(photos.length>1){
+        bodyAll+=`<w:p><w:pPr><w:spacing w:before="100" w:after="40"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:pPr>
+          <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  Vues complémentaires</w:t></w:r></w:p>`;
+        for(let pi=1;pi<photos.length&&pi<5;pi++){
+          const ph=photos[pi]; if(!ph.src)continue;
+          const b64=ph.src.split(',')[1]; if(!b64)continue;
+          const fn=`img${imgId}.jpg`;
+          mediaFiles[fn]=b64;
+          imgRels+=`<Relationship Id="rId${imgId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${fn}"/>`;
+          const eW2=4320000, eH2=Math.round(eW2*0.65);
+          bodyAll+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="40" w:after="40"/></w:pPr>
+            <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
+              <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+                <wp:extent cx="${eW2}" cy="${eH2}"/>
+                <wp:docPr id="${imgId}" name="img${imgId}"/>
+                <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                  <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:nvPicPr><pic:cNvPr id="${imgId}" name="img${imgId}"/><pic:cNvPicPr/></pic:nvPicPr>
+                      <pic:blipFill><a:blip r:embed="rId${imgId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+                      <pic:spPr><a:xfrm><a:ext cx="${eW2}" cy="${eH2}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+                    </pic:pic></a:graphicData></a:graphic>
+              </wp:inline></w:drawing></w:r>
+            <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:i/><w:sz w:val="14"/><w:color w:val="${ORANGE}"/></w:rPr>
+              <w:t xml:space="preserve">  ${escX(photoFileName(o,pi))}</w:t></w:r></w:p>`;
+          imgId++;
+        }
+      }
+    }
+
+    const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:body>${bodyAll}<w:sectPr>${sect}</w:sectPr></w:body></w:document>`;
+
+    const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  ${imgRels}
+</Relationships>`;
+    const appRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+    const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`;
+    const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+    zip.file('[Content_Types].xml',ct); zip.file('_rels/.rels',appRels);
+    zip.folder('word').file('document.xml',docXml); zip.folder('word').file('styles.xml',styles);
+    zip.folder('word/_rels').file('document.xml.rels',rels);
+    Object.entries(mediaFiles).forEach(([fn,b64])=>zip.folder('word/media').file(fn,b64,{base64:true}));
+    const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const url=URL.createObjectURL(blob);
+    const a2=document.createElement('a'); a2.href=url; a2.download=ref+'_fiches.docx'; a2.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast(obs.length+' fiche(s) Word générée(s) !');
+  }catch(err){console.error(err);toast('Erreur : '+err.message);}
+}
+
+
 async function expFiches(){
   if(!obs.length){ toast('Aucune observation'); return; }
   toast('Génération des fiches...');
@@ -1467,394 +1761,6 @@ async function expFiches(){
 }
 
 
-async function expWord(){
-  if(typeof JSZip === 'undefined'){ toast('JSZip non chargé'); return; }
-  toast('Génération Word...');
-  try{
-    const zip = new JSZip();
-    const ref  = proj.ref||'mission';
-    const escX = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    const ORANGE = 'F0A500';
-    const colHex = t => t==='fissure'?'E05252':t==='visuel'?'4A9EFF':t==='sondage'?'4CAF7D':'9A97A0';
-    const bord = `<w:top w:val="single" w:sz="4" w:color="CCCCCC"/><w:left w:val="single" w:sz="4" w:color="CCCCCC"/><w:bottom w:val="single" w:sz="4" w:color="CCCCCC"/><w:right w:val="single" w:sz="4" w:color="CCCCCC"/>`;
-    const cm = `<w:tcMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>`;
-
-    const mkCell = (txt, w2, bold, color, fill) => {
-      const sh = fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : '';
-      return `<w:tc><w:tcPr><w:tcW w:w="${w2}" w:type="dxa"/>${sh}<w:tcBorders>${bord}</w:tcBorders>${cm}</w:tcPr>`
-        + `<w:p><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>${bold?'<w:b/>':''}<w:sz w:val="16"/>`
-        + `${color?`<w:color w:val="${color}"/>`:''}` 
-        + `</w:rPr><w:t xml:space="preserve">${escX(txt)}</w:t></w:r></w:p></w:tc>`;
-    };
-
-    // ── PAGE 1 : Plan paysage ──────────────────────────────────────────
-    // A4 paysage : 16838 x 11906 twips, marges 720 (~1.25cm)
-    const LW = 15398; // 16838 - 2*720
-    let p1body = '';
-    // En-tête
-    p1body += `<w:p><w:pPr><w:spacing w:after="60"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="28"/><w:color w:val="${ORANGE}"/></w:rPr>
-        <w:t xml:space="preserve">${escX(proj.name||'Diagnostic structurel')}</w:t></w:r></w:p>`;
-    p1body += `<w:p><w:pPr><w:spacing w:after="80"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="${ORANGE}"/></w:pBdr></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr>
-        <w:t xml:space="preserve">Réf. ${escX(proj.ref||'—')}   |   Chargé d&#x2019;affaire : ${escX(proj.ing||'—')}   |   Date : ${escX(proj.date||'—')}</w:t></w:r></w:p>`;
-    p1body += `<w:p><w:pPr><w:spacing w:before="80" w:after="60"/><w:shd w:val="clear" w:color="auto" w:fill="${ORANGE}"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="20"/><w:color w:val="FFFFFF"/></w:rPr>
-        <w:t xml:space="preserve">  PLAN ANNOTÉ DES OBSERVATIONS</w:t></w:r></w:p>`;
-
-    let imgRel = '';
-    if(planImg){
-      const b64 = planImg.split(',')[1];
-      if(b64){
-        zip.folder('word/media').file('plan.jpg', b64, {base64:true});
-        imgRel = `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/plan.jpg"/>`;
-        // Pleine largeur paysage : ~15cm => 8640000 EMU, hauteur auto ~55%
-        const emuW = 8640000;
-        const emuH = Math.round(emuW * 0.62);
-        p1body += `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="80" w:after="0"/></w:pPr>
-          <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
-            <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-              <wp:extent cx="${emuW}" cy="${emuH}"/>
-              <wp:docPr id="1" name="Plan"/>
-              <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-                <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                  <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                    <pic:nvPicPr><pic:cNvPr id="1" name="plan"/><pic:cNvPicPr/></pic:nvPicPr>
-                    <pic:blipFill><a:blip r:embed="rId2" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
-                    <pic:spPr><a:xfrm><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
-                  </pic:pic>
-                </a:graphicData>
-              </a:graphic>
-            </wp:inline></w:drawing></w:r></w:p>`;
-      }
-    }
-
-    // Légende pin en bas
-    p1body += `<w:p><w:pPr><w:spacing w:before="120" w:after="0"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="E05252"/></w:rPr><w:t xml:space="preserve">● Fissuration   </w:t></w:r>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="4A9EFF"/></w:rPr><w:t xml:space="preserve">● Visuel   </w:t></w:r>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="4CAF7D"/></w:rPr><w:t xml:space="preserve">● Sondage   </w:t></w:r>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="9A97A0"/></w:rPr><w:t xml:space="preserve">● Autre</w:t></w:r></w:p>`;
-
-    // ── PAGE 2 : Tableau paysage ───────────────────────────────────────
-    let p2body = '';
-    p2body += `<w:p><w:pPr><w:spacing w:before="0" w:after="80"/><w:shd w:val="clear" w:color="auto" w:fill="${ORANGE}"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="20"/><w:color w:val="FFFFFF"/></w:rPr>
-        <w:t xml:space="preserve">  RELEVÉ DES OBSERVATIONS</w:t></w:r></w:p>`;
-
-    // Colonnes paysage : largeur totale ~15400 twips
-    const cols = [1300,900,1200,2800,3600,1400,900,1000,1200,900,1200];
-    const hdrs = ['Réf.','Pin','Type','Localisation','Observation','Date','L.(mm)','Long.(cm)','Orient.','Act.','Sondage'];
-    const tW = cols.reduce((a,b)=>a+b,0);
-
-    p2body += `<w:tbl><w:tblPr><w:tblW w:w="${tW}" w:type="dxa"/><w:tblBorders>${bord}</w:tblBorders></w:tblPr>
-      <w:tblGrid>${cols.map(c=>`<w:gridCol w:w="${c}"/>`).join('')}</w:tblGrid>`;
-    p2body += `<w:tr>${hdrs.map((h,i)=>mkCell(h,cols[i],true,ORANGE,'1A1D27')).join('')}</w:tr>`;
-    obs.forEach((o,ri)=>{
-      const lbl = o.pinLabel||String(o.id).padStart(2,'0');
-      const fill = ri%2===0?'F5F5FA':'FFFFFF';
-      const tc = colHex(o.type);
-      const sondInfo = o.sondage ? [o.sondage.stype,o.sondage.dim].filter(Boolean).join(' / ') : '';
-      const vals = [
-        'OBS-'+String(o.id).padStart(3,'0'), lbl, o.type.toUpperCase(),
-        o.loc||'', o.text||'', (o.date||'').split(' ')[0]||'',
-        o.fissure?.larg||'', o.fissure?.long||'', o.fissure?.ori||'', o.fissure?.act||'',
-        sondInfo
-      ];
-      p2body += `<w:tr>${vals.map((v,i)=>mkCell(v,cols[i],i===2,i===2?tc:null,fill)).join('')}</w:tr>`;
-    });
-    p2body += `</w:tbl>`;
-
-    // ── Assemblage : deux sections paysage ──────────────────────────────
-    // A4 paysage dans docx : w=16838 h=11906
-    const paysageSect = `<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>`;
-
-    const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-  <w:body>
-    ${p1body}
-    <w:p><w:pPr><w:sectPr>${paysageSect}</w:sectPr></w:pPr></w:p>
-    ${p2body}
-    <w:sectPr>${paysageSect}</w:sectPr>
-  </w:body>
-</w:document>`;
-
-    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/></w:rPr></w:rPrDefault></w:docDefaults>
-</w:styles>`;
-
-    const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-  ${imgRel}
-</Relationships>`;
-
-    const appRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`;
-
-    const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Default Extension="jpg" ContentType="image/jpeg"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-</Types>`;
-
-    zip.file('[Content_Types].xml', ct);
-    zip.file('_rels/.rels', appRels);
-    zip.folder('word').file('document.xml', docXml);
-    zip.folder('word').file('styles.xml', styles);
-    zip.folder('word/_rels').file('document.xml.rels', rels);
-
-    const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-    const url = URL.createObjectURL(blob);
-    const a2 = document.createElement('a');
-    a2.href = url; a2.download = ref+'_rapport.docx'; a2.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 5000);
-    toast('Word généré !');
-  }catch(err){ console.error('Word error:', err); toast('Erreur Word : '+err.message); }
-}
-
-function expCSV(){
-  const hdr=['ID','Pin','Type','Localisation','Observation','Date','Larg.(mm)','Long.(cm)','Orientation','Activité','Photos','Photos localisées'];
-  const rows=obs.map(o=>['OBS-'+String(o.id).padStart(3,'0'),o.pinLabel||'',o.type,o.loc||'',o.text||'',o.date,o.fissure?.larg||'',o.fissure?.long||'',o.fissure?.ori||'',o.fissure?.act||'',o.sondage?.stype||'',o.sondage?.dim||'',o.sondage?.obs||'',(o.photos||[]).length]);
-  dl(new Blob(['\uFEFF',[hdr,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n')],{type:'text/csv;charset=utf-8'}),(proj.ref||'mission')+'_observations.csv');
-  toast('CSV exporté');
-}
-
-// LOGOS POUR EXPORTS
-const LOGO_DARK = 'data:image/jpeg;base64,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';
-const LOGO_WHITE = 'data:image/jpeg;base64,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';
-
-
-async function expPDF(){
-  if(!planImg){ toast('Chargez un plan dabord'); return; }
-  toast('Generation PDF...');
-  try{
-  const { jsPDF } = window.jspdf;
-  const ORANGE = [240,165,0];
-  const DARK   = [15,17,23];
-  const SURF   = [26,29,39];
-  const BEIGE  = [255,248,235];  // sous-titres
-  const TXTD   = [30,30,30];     // texte sombre sur fond clair
-  const TXTL   = [220,217,232];  // texte clair sur fond sombre
-  const GRAY   = [120,118,130];
-  const SIREN_TXT = 'BTP INGENIERIE RHONE ALPES - 31 Place Jules Grandclement, 69100 Villeurbanne - www.btp-ingenierie.fr';
-
-  // ════════════════════════════════════════════
-  // PAGE 1 : PLAN ANNOTÉ  A4 paysage
-  // ════════════════════════════════════════════
-  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
-  const marg=15;
-  const LW=297, LH=210;
-  const FOOT=12;
-
-  // Fond sombre
-  doc.setFillColor(...DARK); doc.rect(0,0,LW,LH,'F');
-
-  // En-tête
-  doc.setFillColor(...SURF); doc.rect(0,0,LW,18,'F');
-  doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4); doc.line(0,18,LW,18);
-  // Logo en-tête à droite
-  try{ doc.addImage(LOGO_DARK,'JPEG', LW-55, 1, 48, 15); }catch(e){}
-  // Infos mission haut gauche
-  doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
-  doc.text((proj.name||'').substring(0,60), marg, 8);
-  doc.setFontSize(7); doc.text('Ref. '+(proj.ref||'—')+'  |  '+proj.ing+'  |  '+proj.date, marg, 14);
-
-  // Titre section orange
-  doc.setFillColor(...ORANGE); doc.rect(0,18,LW,10,'F');
-  doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
-  doc.text('PLAN ANNOTE DES OBSERVATIONS', marg, 25);
-
-  // Construire le plan annoté
-  let annotated = await new Promise(resolve => {
-    if(!planImg){ resolve(null); return; }
-    const baseImg = new Image();
-    baseImg.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = baseImg.width; c.height = baseImg.height;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(baseImg, 0, 0);
-      const pinScale = Math.max(c.width, c.height) / 800;
-      const pinR = Math.round(16 * pinScale);
-      const fontSize = Math.round(11 * pinScale);
-      obs.forEach(o => {
-        if(!o.pos) return;
-        const col = o.type==='fissure' ? [224,82,82] : o.type==='visuel' ? [74,158,255] : o.type==='sondage' ? [76,175,125] : [154,151,160];
-        const lbl = o.pinLabel || String(o.id).padStart(2,'0');
-        const x = o.pos.x, y = o.pos.y;
-        const cy = y - pinR*1.5;
-        ctx.beginPath(); ctx.ellipse(x+1, y+3, 4*pinScale, 1.5*pinScale, 0, 0, Math.PI*2);
-        ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fill();
-        ctx.beginPath(); ctx.moveTo(x-2*pinScale, cy+pinR*0.7); ctx.lineTo(x, y+2); ctx.lineTo(x+2*pinScale, cy+pinR*0.7);
-        ctx.fillStyle='#999'; ctx.fill();
-        ctx.beginPath(); ctx.arc(x, cy, pinR, 0, Math.PI*2);
-        ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.fill();
-        const grad=ctx.createRadialGradient(x-pinR*0.3, cy-pinR*0.35, 0, x, cy, pinR);
-        grad.addColorStop(0,'rgba(255,255,255,0.7)'); grad.addColorStop(0.6,'rgba(255,255,255,0)');
-        ctx.beginPath(); ctx.arc(x, cy, pinR, 0, Math.PI*2); ctx.fillStyle=grad; ctx.fill();
-        const tfs=lbl.length>4?Math.round(fontSize*0.75):fontSize;
-        ctx.font=`bold ${tfs}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillText(lbl, x+0.5, cy+1.5);
-        ctx.fillStyle='#fff'; ctx.fillText(lbl, x, cy+0.5);
-      });
-      resolve(c.toDataURL('image/jpeg', 0.92));
-    };
-    baseImg.onerror = () => resolve(planImg);
-    baseImg.src = planImg;
-  });
-  if(!annotated) annotated = planImg;
-
-  // Placer le plan
-  const planAreaY=28, planAreaH=LH-planAreaY-FOOT-4;
-  const planAreaW=LW-2*marg;
-  const tmpImg=new Image(); tmpImg.src=annotated;
-  await new Promise(r=>{tmpImg.onload=r;tmpImg.onerror=r;});
-  const iW=tmpImg.width||1, iH=tmpImg.height||1;
-  const scX=planAreaW/iW, scY=planAreaH/iH;
-  const scPlan=Math.min(scX,scY);
-  const dW=iW*scPlan, dH=iH*scPlan;
-  const dX=marg+(planAreaW-dW)/2, dY=planAreaY+(planAreaH-dH)/2;
-  try{ doc.addImage(annotated,'JPEG',dX,dY,dW,dH); }catch(e){}
-
-  // Légende
-  const legY=LH-FOOT+1;
-  doc.setFillColor(...SURF); doc.rect(0,LH-FOOT,LW,FOOT,'F');
-  doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3); doc.line(0,LH-FOOT,LW,LH-FOOT);
-  try{ doc.addImage(LOGO_DARK,'JPEG', marg, LH-FOOT+0.5, 26, 9); }catch(e){}
-  doc.setFontSize(6); doc.setTextColor(...GRAY);
-  doc.setFillColor(224,82,82); doc.rect(marg+30, legY+2, 3, 3, 'F');
-  doc.text('Fissuration', marg+34, legY+5);
-  doc.setFillColor(74,158,255); doc.rect(marg+56, legY+2, 3, 3, 'F');
-  doc.text('Visuel', marg+60, legY+5);
-  doc.setFillColor(154,151,160); doc.rect(marg+74, legY+2, 3, 3, 'F');
-  doc.text('Autre', marg+78, legY+5);
-  doc.setTextColor(...ORANGE); doc.setFontSize(7); doc.setFont('helvetica','bold');
-  doc.text('1', LW-marg, legY+6, {align:'right'});
-
-  // ════════════════════════════════════════════
-  // PAGES TABLEAU OBSERVATIONS  A4 portrait
-  // ════════════════════════════════════════════
-  const PA=210, PB=297;
-  const ROW_H=8;
-  const COLS=[
-    {label:'Ref.', w:18},{label:'Pin', w:16},{label:'Type', w:16},
-    {label:'Localisation', w:54},{label:'Observation', w:64},{label:'Date', w:22},
-  ];
-  const FCOLS=[{label:'L.(mm)', w:16},{label:'Long.(cm)', w:18},{label:'Orient.', w:20},{label:'Activite', w:16}];
-  const allC=[...COLS,...FCOLS];
-  const totW=allC.reduce((a,c)=>a+c.w,0);
-  const mP=12, tableW=PA-2*mP;
-  const scF=tableW/totW;
-  const totalPg = 2 + Math.ceil(obs.length/18);
-
-  // Fonction en-tête de page tableau
-  function addTabPage(pgN){
-    doc.addPage('a4','portrait');
-    // Fond blanc
-    doc.setFillColor(255,255,255); doc.rect(0,0,PA,PB,'F');
-    // En-tête : infos gauche + logo droit
-    doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
-    doc.text(proj.name||'', mP, 8);
-    doc.text('Etude structurelle', mP, 13);
-    doc.text('Reference : '+(proj.ref||'—'), mP, 18);
-    try{ doc.addImage(LOGO_WHITE,'JPEG', PA-mP-42, 4, 40, 12); }catch(e){}
-    // Trait orange sous l'en-tête
-    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.5);
-    doc.line(mP, 22, PA-mP, 22);
-    // Titre section
-    doc.setFillColor(...ORANGE); doc.rect(mP, 25, tableW, 9, 'F');
-    doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
-    doc.text('RELEVE DES OBSERVATIONS', mP+3, 31);
-    // Pied de page
-    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3);
-    doc.line(mP, PB-14, PA-mP, PB-14);
-    doc.setFontSize(6.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
-    doc.text(SIREN_TXT, PA/2, PB-10, {align:'center'});
-    doc.text('BTP INGENIERIE RHONE ALPES - 31 Place Jules Grandclement, 69100 Villeurbanne', PA/2, PB-6, {align:'center'});
-    doc.setTextColor(...ORANGE); doc.setFontSize(8); doc.setFont('helvetica','bold');
-    doc.text(String(pgN), PA-mP, PB-8, {align:'right'});
-    return 37;
-  }
-
-  // Fonction en-têtes colonnes
-  function drawHdrs(y){
-    doc.setFillColor(...SURF); doc.rect(mP, y, tableW, ROW_H, 'F');
-    doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(...ORANGE);
-    let cx=mP;
-    allC.forEach(col=>{
-      const cw=col.w*scF;
-      doc.text(col.label, cx+1.5, y+5.5, {maxWidth:cw-2});
-      cx+=cw;
-    });
-    // Séparateurs
-    doc.setDrawColor(50,55,75); doc.setLineWidth(0.15);
-    cx=mP;
-    allC.forEach(col=>{ const cw=col.w*scF; doc.line(cx,y,cx,y+ROW_H); cx+=cw; });
-    doc.line(cx,y,cx,y+ROW_H);
-    doc.line(mP,y,PA-mP,y); doc.line(mP,y+ROW_H,PA-mP,y+ROW_H);
-    return y+ROW_H;
-  }
-
-  let curY=0, curPg=2;
-  curY = addTabPage(curPg);
-  curY = drawHdrs(curY);
-
-  obs.forEach((o,idx)=>{
-    if(curY+ROW_H > PB-18){ curPg++; curY=addTabPage(curPg); curY=drawHdrs(curY); }
-    // Fond alterné
-    if(idx%2===0){ doc.setFillColor(248,248,252); doc.rect(mP,curY,tableW,ROW_H,'F'); }
-    const col=o.type==='fissure'?[200,40,40]:o.type==='visuel'?[30,100,200]:o.type==='sondage'?[50,160,100]:[100,100,120];
-    const lbl=o.pinLabel||String(o.id).padStart(2,'0');
-    const rowData=[
-      'OBS-'+String(o.id).padStart(3,'0'), lbl, o.type.toUpperCase(),
-      o.loc||'', o.text||'', o.date?.split(' ')?.[0]||'',
-      o.fissure?.larg||'', o.fissure?.long||'', o.fissure?.ori||'', o.fissure?.act||'',
-    ];
-    let cx=mP;
-    rowData.forEach((val,ci)=>{
-      const cw=allC[ci].w*scF;
-      if(ci===2){ doc.setTextColor(...col); doc.setFont('helvetica','bold'); }
-      else{ doc.setTextColor(...TXTD); doc.setFont('helvetica','normal'); }
-      doc.setFontSize(6.5);
-      doc.text(String(val||''), cx+1.5, curY+5.5, {maxWidth:cw-3});
-      cx+=cw;
-    });
-    // Bordures
-    doc.setDrawColor(200,200,210); doc.setLineWidth(0.12);
-    cx=mP;
-    allC.forEach(col2=>{ const cw=col2.w*scF; doc.line(cx,curY,cx,curY+ROW_H); cx+=cw; });
-    doc.line(cx,curY,cx,curY+ROW_H);
-    doc.line(mP,curY+ROW_H,PA-mP,curY+ROW_H);
-    curY+=ROW_H;
-
-    // Photos
-    if((o.photos||[]).length>0){
-      const phH=24;
-      if(curY+phH>PB-18){ curPg++; curY=addTabPage(curPg); curY=drawHdrs(curY); }
-      let px2=mP+2;
-      for(const ph of o.photos){
-        if(!ph.src) continue;
-        try{ doc.addImage(ph.src,'JPEG',px2,curY+1,20,18); px2+=22; if(px2+22>PA-mP) break; }catch(e){}
-      }
-      curY+=phH;
-    }
-  });
-
-  doc.save((proj.ref||'mission')+'_rapport.pdf');
-  toast('PDF genere');
-  }catch(err){ console.error('PDF error:', err); toast('Erreur PDF : '+err.message); }
-}
-
 // JSON IMPORT
 async function loadJSON(input){
   const f=input.files[0]; if(!f)return;
@@ -2026,4 +1932,87 @@ async function downloadAllPhotos(){
 window.addEventListener('DOMContentLoaded', ()=>{ migrateOldData(); renderAffairesList(); });
 </script>
 </body>
-</html>
+</html>async function expPDF(){
+  if(!planImg){ toast('Chargez un plan dabord'); return; }
+  toast('Génération plan PDF...');
+  try{
+    const { jsPDF } = window.jspdf;
+    const marg=15, LW=297, LH=210, FOOT=12;
+    const ORANGE=[240,165,0], SURF=[26,29,39], GRAY=[120,118,130], DARK=[15,17,23];
+
+    const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+
+    // Fond sombre
+    doc.setFillColor(...DARK); doc.rect(0,0,LW,LH,'F');
+
+    // En-tête
+    doc.setFillColor(...SURF); doc.rect(0,0,LW,18,'F');
+    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4); doc.line(0,18,LW,18);
+    try{ doc.addImage(LOGO_DARK,'JPEG', LW-55, 1, 48, 15); }catch(e){}
+    doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+    doc.text((proj.name||'').substring(0,60), marg, 8);
+    doc.text('Ref. '+(proj.ref||'—')+'  |  '+(proj.ing||'')+'  |  '+(proj.date||''), marg, 14);
+
+    // Bandeau titre
+    doc.setFillColor(...ORANGE); doc.rect(0,18,LW,10,'F');
+    doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+    doc.text('PLAN ANNOTÉ DES OBSERVATIONS', marg, 25);
+
+    // Plan annoté avec pins
+    let annotated = await new Promise(resolve => {
+      const baseImg = new Image();
+      baseImg.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = baseImg.width; c.height = baseImg.height;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(baseImg, 0, 0);
+        const ps = Math.max(c.width, c.height) / 800;
+        const pinR = Math.round(16 * ps);
+        const fontSize = Math.round(11 * ps);
+        obs.forEach(o => {
+          if(!o.pos) return;
+          const col = o.type==='fissure'?[224,82,82]:o.type==='visuel'?[74,158,255]:o.type==='sondage'?[76,175,125]:[154,151,160];
+          const lbl = o.pinLabel||String(o.id).padStart(2,'0');
+          const x=o.pos.x, y=o.pos.y, cy=y-pinR*1.5;
+          ctx.beginPath(); ctx.ellipse(x+1,y+3,4*ps,1.5*ps,0,0,Math.PI*2); ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fill();
+          ctx.beginPath(); ctx.moveTo(x-2*ps,cy+pinR*0.7); ctx.lineTo(x,y+2); ctx.lineTo(x+2*ps,cy+pinR*0.7); ctx.fillStyle='#999'; ctx.fill();
+          ctx.beginPath(); ctx.arc(x,cy,pinR,0,Math.PI*2); ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.fill();
+          const grad=ctx.createRadialGradient(x-pinR*0.3,cy-pinR*0.35,0,x,cy,pinR);
+          grad.addColorStop(0,'rgba(255,255,255,0.7)'); grad.addColorStop(0.6,'rgba(255,255,255,0)');
+          ctx.beginPath(); ctx.arc(x,cy,pinR,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+          const tfs=lbl.length>4?Math.round(fontSize*0.75):fontSize;
+          ctx.font=`bold ${tfs}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillText(lbl,x+0.5,cy+1.5);
+          ctx.fillStyle='#fff'; ctx.fillText(lbl,x,cy+0.5);
+        });
+        resolve(c.toDataURL('image/jpeg',0.92));
+      };
+      baseImg.onerror = () => resolve(planImg);
+      baseImg.src = planImg;
+    });
+
+    const planAreaY=28, planAreaH=LH-planAreaY-FOOT-4, planAreaW=LW-2*marg;
+    const tmpImg=new Image(); tmpImg.src=annotated;
+    await new Promise(r=>{tmpImg.onload=r;tmpImg.onerror=r;});
+    const iW=tmpImg.width||1, iH=tmpImg.height||1;
+    const scPlan=Math.min(planAreaW/iW, planAreaH/iH);
+    const dW=iW*scPlan, dH=iH*scPlan;
+    const dX=marg+(planAreaW-dW)/2, dY=planAreaY+(planAreaH-dH)/2;
+    try{ doc.addImage(annotated,'JPEG',dX,dY,dW,dH); }catch(e){}
+
+    // Pied de page + légende
+    const legY=LH-FOOT+1;
+    doc.setFillColor(...SURF); doc.rect(0,LH-FOOT,LW,FOOT,'F');
+    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3); doc.line(0,LH-FOOT,LW,LH-FOOT);
+    try{ doc.addImage(LOGO_DARK,'JPEG', marg, LH-FOOT+0.5, 26, 9); }catch(e){}
+    doc.setFontSize(6); doc.setTextColor(...GRAY);
+    doc.setFillColor(224,82,82); doc.rect(marg+30,legY+2,3,3,'F'); doc.text('Fissuration',marg+34,legY+5);
+    doc.setFillColor(74,158,255); doc.rect(marg+56,legY+2,3,3,'F'); doc.text('Visuel',marg+60,legY+5);
+    doc.setFillColor(76,175,125); doc.rect(marg+74,legY+2,3,3,'F'); doc.text('Sondage',marg+78,legY+5);
+    doc.setFillColor(154,151,160); doc.rect(marg+96,legY+2,3,3,'F'); doc.text('Autre',marg+100,legY+5);
+
+    doc.save((proj.ref||'mission')+'_plan.pdf');
+    toast('Plan PDF généré');
+  }catch(err){ console.error('PDF error:',err); toast('Erreur : '+err.message); }
+}
+
