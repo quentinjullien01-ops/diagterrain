@@ -1411,7 +1411,7 @@ async function expFichesWord(){
           const fn=`img${imgId}.jpg`;
           mediaFiles[fn]=b64;
           imgRels+=`<Relationship Id="rId${imgId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${fn}"/>`;
-          const eW=9360000, eH=Math.round(eW*0.65);
+          const eW=6640000, eH=4980000;
           bodyAll+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="60" w:after="40"/></w:pPr>
             <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
               <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
@@ -1448,10 +1448,10 @@ async function expFichesWord(){
 
       // Données spécifiques
       const mkRow=(k,v,fill)=>`<w:tr>
-        <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}
+        <w:tc><w:tcPr><w:tcW w:w="2400" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}
           <w:tcBorders>${bord}</w:tcBorders>${cm}</w:tcPr>
           <w:p><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/><w:color w:val="${ORANGE}"/></w:rPr><w:t>${escX(k)}</w:t></w:r></w:p></w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="7160" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}
+        <w:tc><w:tcPr><w:tcW w:w="8066" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}
           <w:tcBorders>${bord}</w:tcBorders>${cm}</w:tcPr>
           <w:p><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/></w:rPr><w:t>${escX(v)}</w:t></w:r></w:p></w:tc>
       </w:tr>`;
@@ -1465,7 +1465,7 @@ async function expFichesWord(){
         if(rows.length){
           bodyAll+=`<w:p><w:pPr><w:spacing w:before="80" w:after="40"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:pPr>
             <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  Caractéristiques de la fissure</w:t></w:r></w:p>`;
-          bodyAll+=`<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="2200"/><w:gridCol w:w="7160"/></w:tblGrid>${rows.join('')}</w:tbl>`;
+          bodyAll+=`<w:tbl><w:tblPr><w:tblW w:w="10466" w:type="dxa"/><w:tblBorders><w:insideH w:val="single" w:sz="4" w:color="CCCCCC"/><w:insideV w:val="single" w:sz="4" w:color="CCCCCC"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="2400"/><w:gridCol w:w="8066"/></w:tblGrid>${rows.join('')}</w:tbl>`;
         }
       }
       if(o.type==='sondage'&&o.sondage){
@@ -1476,7 +1476,7 @@ async function expFichesWord(){
         if(rows.length){
           bodyAll+=`<w:p><w:pPr><w:spacing w:before="80" w:after="40"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:pPr>
             <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  Données du sondage</w:t></w:r></w:p>`;
-          bodyAll+=`<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="2200"/><w:gridCol w:w="7160"/></w:tblGrid>${rows.join('')}</w:tbl>`;
+          bodyAll+=`<w:tbl><w:tblPr><w:tblW w:w="10466" w:type="dxa"/><w:tblBorders><w:insideH w:val="single" w:sz="4" w:color="CCCCCC"/><w:insideV w:val="single" w:sz="4" w:color="CCCCCC"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="2400"/><w:gridCol w:w="8066"/></w:tblGrid>${rows.join('')}</w:tbl>`;
         }
       }
 
@@ -1490,7 +1490,7 @@ async function expFichesWord(){
           const fn=`img${imgId}.jpg`;
           mediaFiles[fn]=b64;
           imgRels+=`<Relationship Id="rId${imgId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${fn}"/>`;
-          const eW2=4320000, eH2=Math.round(eW2*0.65);
+          const eW2=4000000, eH2=3000000;
           bodyAll+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="40" w:after="40"/></w:pPr>
             <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
               <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
