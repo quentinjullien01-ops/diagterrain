@@ -221,6 +221,28 @@ select.fi-sm option{background:var(--sf)}
 .tb.as{background:rgba(76,175,125,0.15);border-color:var(--grn);color:var(--grn)}
 
 .pin-prev.t-sondage{background:var(--grn)}
+
+/* RÉCAP SCREEN */
+.recap-obs-card{padding:14px;border-bottom:0.5px solid var(--br);display:flex;flex-direction:column;gap:8px}
+.recap-obs-hdr{display:flex;align-items:center;gap:10px}
+.recap-obs-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.recap-obs-dot.fissure{background:var(--red)}.recap-obs-dot.visuel{background:var(--blu)}.recap-obs-dot.sondage{background:var(--grn)}.recap-obs-dot.autre{background:var(--tx2)}
+.recap-obs-id{font-size:13px;font-family:var(--mo);color:var(--ac);font-weight:600}
+.recap-obs-loc{font-size:14px;font-weight:500;flex:1}
+.recap-obs-meta{font-size:12px;color:var(--tx2)}
+.recap-photos{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;flex-wrap:nowrap}
+.recap-ph{position:relative;flex-shrink:0}
+.recap-ph img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid var(--br2);display:block}
+.recap-ph-name{font-size:10px;color:var(--tx3);margin-top:2px;width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.recap-ph-dl{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(15,17,23,0.75);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.recap-ph-dl svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.dl-all-btn{background:var(--grn);border:none;color:#fff;font-size:15px;font-weight:600;border-radius:var(--rl);padding:16px;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:10px}
+.dl-all-btn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dl-all-btn:active{opacity:.85}
+.recap-stats{display:flex;gap:12px;padding:14px;border-bottom:0.5px solid var(--br);flex-shrink:0}
+.recap-stat{flex:1;text-align:center;background:var(--sf2);border-radius:var(--r);padding:10px 6px}
+.recap-stat-n{font-size:22px;font-weight:600;color:var(--ac);font-family:var(--mo)}
+.recap-stat-l{font-size:11px;color:var(--tx2);margin-top:2px}
 </style>
 </head>
 <body>
@@ -374,6 +396,7 @@ select.fi-sm option{background:var(--sf)}
     <button class="nb on" id="nb-m" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
     <button class="nb" id="nb-l" onclick="goList()"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Relevés</span></button>
     <button class="nb" id="nb-e" onclick="goExp()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
+    <button class="nb" id="nb-r" onclick="goRecap()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="3"/></svg><span>Récap</span></button>
   </div>
 </div>
 
@@ -385,6 +408,7 @@ select.fi-sm option{background:var(--sf)}
     <button class="nb" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
     <button class="nb on" onclick="goList()"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Relevés</span></button>
     <button class="nb" onclick="goExp()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
+      <button class="nb" onclick="goRecap()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="3"/></svg><span>Récap</span></button>
   </div>
 </div>
 
@@ -406,8 +430,39 @@ select.fi-sm option{background:var(--sf)}
     <button class="nb" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
     <button class="nb" onclick="goList()"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Relevés</span></button>
     <button class="nb on" onclick="goExp()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
+      <button class="nb" onclick="goRecap()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="3"/></svg><span>Récap</span></button>
   </div>
 </div>
+
+<!-- RÉCAP -->
+<div class="scr" id="scr-recap">
+  <div class="hdr">
+    <button class="ib" onclick="showMap()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div style="flex:1">
+      <div class="hdr-t">Récap affaire</div>
+      <div class="hdr-s" id="recap-ref">—</div>
+    </div>
+  </div>
+  <!-- Stats -->
+  <div class="recap-stats" id="recap-stats"></div>
+  <!-- Bouton télécharger toutes les photos -->
+  <div style="padding:12px 14px;border-bottom:0.5px solid var(--br);flex-shrink:0" id="recap-dl-wrap">
+    <button class="dl-all-btn" onclick="downloadAllPhotos()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Télécharger toutes les photos
+    </button>
+  </div>
+  <!-- Liste observations avec photos -->
+  <div style="flex:1;overflow-y:auto" id="recap-body"></div>
+  <div class="nav">
+    <button class="nb" onclick="showMap()"><svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg><span>Plan</span></button>
+    <button class="nb" onclick="goList()"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Relevés</span></button>
+    <button class="nb" onclick="goExp()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Export</span></button>
+    <button class="nb on" onclick="goRecap()"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="3"/></svg><span>Récap</span></button>
+  </div>
+</div>
+
+
 
 
 <script>
@@ -745,13 +800,37 @@ function setType(t){
   document.getElementById('pin-prev').className='pin-prev t-'+(t==='sondage'?'sondage':t);
 }
 
+function photoFileName(o, photoIdx){
+  const ref = (proj.ref||'DIAG').replace(/[^a-zA-Z0-9_-]/g,'');
+  const lbl = (o.pinLabel||String(o.id).padStart(2,'0')).replace(/[^a-zA-Z0-9_-]/g,'');
+  const letter = String.fromCharCode(65 + photoIdx); // A, B, C...
+  return ref + '_' + lbl + letter + '.jpg';
+}
+
+function savePhotoToGallery(src, obsId, photoIdx){
+  const o = obs.find(x=>x.id===obsId);
+  const a=document.createElement('a');
+  a.href=src;
+  a.download = o ? photoFileName(o, photoIdx) : 'photo'+(photoIdx+1)+'.jpg';
+  a.click();
+}
+
 function renderPhotoRow(photos){
   const row=document.getElementById('ph-row'); row.innerHTML='';
   photos.forEach((ph,i)=>{
     const w=document.createElement('div'); w.className='ph-wrap';
     const img=document.createElement('img'); img.className='ph-thumb'; img.src=ph.src;
     img.onclick=()=>{if(confirm('Supprimer cette photo ?')){curPhotos.splice(i,1);renderPhotoRow(curPhotos);}};
-    w.appendChild(img); row.appendChild(w);
+    w.appendChild(img);
+    // Bouton téléchargement
+    const dl=document.createElement('div');
+    dl.className='ph-badge unloc';
+    dl.title='Enregistrer dans la galerie';
+    dl.style.background='var(--sf2)';
+    dl.innerHTML='<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    dl.onclick=e=>{e.stopPropagation(); savePhotoToGallery(ph.src, editId, i);};
+    w.appendChild(dl);
+    row.appendChild(w);
   });
   const add=document.createElement('div'); add.className='ph-add';
   add.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="var(--tx3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
@@ -1314,7 +1393,7 @@ async function expPDF(){
     doc.text(proj.name||'', mP, 8);
     doc.text('Etude structurelle', mP, 13);
     doc.text('Reference : '+(proj.ref||'—'), mP, 18);
-    try{ doc.addImage(LOGO_WHITEHITE,'JPEG', PA-mP-42, 4, 40, 12); }catch(e){}
+    try{ doc.addImage(LOGO_WHITE,'JPEG', PA-mP-42, 4, 40, 12); }catch(e){}
     // Trait orange sous l'en-tête
     doc.setDrawColor(...ORANGE); doc.setLineWidth(0.5);
     doc.line(mP, 22, PA-mP, 22);
@@ -1460,6 +1539,108 @@ if('serviceWorker' in navigator){
 }
 
 // INIT — afficher la carte "mission en cours" au démarrage
+// ══ ÉCRAN RÉCAP ══
+function goRecap(){
+  // Mettre à jour navs
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  showScr('recap');
+  renderRecap();
+}
+
+function renderRecap(){
+  if(!proj.name){ return; }
+
+  // Référence
+  document.getElementById('recap-ref').textContent = (proj.ref||'—') + (proj.ing?' · '+proj.ing:'');
+
+  // Stats
+  const totalPh = obs.reduce((s,o)=>s+(o.photos||[]).length,0);
+  const byType = {fissure:0,visuel:0,sondage:0,autre:0};
+  obs.forEach(o=>{ if(byType[o.type]!==undefined) byType[o.type]++; else byType.autre++; });
+  document.getElementById('recap-stats').innerHTML = `
+    <div class="recap-stat"><div class="recap-stat-n">${obs.length}</div><div class="recap-stat-l">Observations</div></div>
+    <div class="recap-stat"><div class="recap-stat-n">${totalPh}</div><div class="recap-stat-l">Photos</div></div>
+    <div class="recap-stat"><div class="recap-stat-n" style="color:var(--red)">${byType.fissure}</div><div class="recap-stat-l">Fissures</div></div>
+    <div class="recap-stat"><div class="recap-stat-n" style="color:var(--grn)">${byType.sondage}</div><div class="recap-stat-l">Sondages</div></div>
+  `;
+
+  // Bouton dl all
+  document.getElementById('recap-dl-wrap').style.display = totalPh>0 ? 'block' : 'none';
+
+  // Body — liste observations
+  const body = document.getElementById('recap-body');
+  if(!obs.length){
+    body.innerHTML='<div style="padding:40px;text-align:center;color:var(--tx2)">Aucune observation</div>';
+    return;
+  }
+
+  body.innerHTML = obs.map(o=>{
+    const lbl  = o.pinLabel||String(o.id).padStart(2,'0');
+    const col  = o.type==='fissure'?'fissure':o.type==='visuel'?'visuel':o.type==='sondage'?'sondage':'autre';
+    const photos = (o.photos||[]);
+
+    const detailHtml = o.type==='fissure' && o.fissure
+      ? `<div class="recap-obs-meta">L: ${o.fissure.larg||'—'} mm · Long: ${o.fissure.long||'—'} cm · ${o.fissure.ori||''} · ${o.fissure.act||''}</div>`
+      : o.type==='sondage' && o.sondage
+      ? `<div class="recap-obs-meta">${o.sondage.stype||''} ${o.sondage.dim?'· '+o.sondage.dim:''}</div>`
+      : '';
+
+    const photosHtml = photos.length ? `
+      <div class="recap-photos">
+        ${photos.map((ph,i)=>{
+          const fname = photoFileName(o, i);
+          return `<div class="recap-ph">
+            <img src="${ph.src}" onclick="recapPreviewPhoto('${ph.src}')">
+            <div class="recap-ph-dl" onclick="recapDlPhoto('${ph.src}','${fname}')">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <div class="recap-ph-name">${fname}</div>
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
+    return `<div class="recap-obs-card">
+      <div class="recap-obs-hdr">
+        <div class="recap-obs-dot ${col}"></div>
+        <div class="recap-obs-id">${lbl}</div>
+        <div class="recap-obs-loc">${esc(o.loc||o.text||'—')}</div>
+        <div class="recap-obs-meta">${photos.length ? photos.length+'📷' : ''}</div>
+      </div>
+      ${o.text&&o.loc?`<div class="recap-obs-meta" style="color:var(--tx);font-size:13px">${esc(o.text)}</div>`:''}
+      ${detailHtml}
+      ${photosHtml}
+      <div class="recap-obs-meta">${o.date||''}</div>
+    </div>`;
+  }).join('');
+}
+
+function recapDlPhoto(src, fname){
+  const a=document.createElement('a'); a.href=src; a.download=fname; a.click();
+}
+
+function recapPreviewPhoto(src){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:flex;align-items:center;justify-content:center';
+  ov.onclick=()=>ov.remove();
+  const img=document.createElement('img');
+  img.src=src; img.style.cssText='max-width:96vw;max-height:92vh;border-radius:8px;object-fit:contain';
+  ov.appendChild(img); document.body.appendChild(ov);
+}
+
+async function downloadAllPhotos(){
+  const allPh=[];
+  obs.forEach(o=>(o.photos||[]).forEach((ph,i)=>{
+    if(ph.src) allPh.push({src:ph.src, name:photoFileName(o,i)});
+  }));
+  if(!allPh.length){ toast('Aucune photo à télécharger'); return; }
+  toast('Téléchargement de '+allPh.length+' photo(s)...');
+  for(let i=0;i<allPh.length;i++){
+    await new Promise(r=>setTimeout(r,350));
+    const a=document.createElement('a'); a.href=allPh[i].src; a.download=allPh[i].name; a.click();
+  }
+  toast('Photos téléchargées !');
+}
+
 window.addEventListener('DOMContentLoaded', ()=>{ migrateOldData(); renderAffairesList(); });
 </script>
 </body>
