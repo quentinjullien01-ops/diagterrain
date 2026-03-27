@@ -217,6 +217,10 @@ select.fi-sm option{background:var(--sf)}
 .move-bar{position:absolute;top:0;left:0;right:0;z-index:30;background:rgba(168,85,247,.95);padding:10px 16px;display:none;align-items:center;gap:12px}
 .move-bar p{font-size:20px;font-weight:600;color:#fff;flex:1}
 .move-bar button{background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 14px;font-size:20px;font-weight:600;color:#fff;cursor:pointer}
+
+.tb.as{background:rgba(76,175,125,0.15);border-color:var(--grn);color:var(--grn)}
+
+.pin-prev.t-sondage{background:var(--grn)}
 </style>
 </head>
 <body>
@@ -245,6 +249,7 @@ select.fi-sm option{background:var(--sf)}
       <div class="tr">
         <div class="tb" id="tb-f" onclick="setType('fissure')">Fissuration</div>
         <div class="tb" id="tb-v" onclick="setType('visuel')">Visuel</div>
+        <div class="tb" id="tb-s" onclick="setType('sondage')">Sondage</div>
         <div class="tb" id="tb-a" onclick="setType('autre')">Autre</div>
       </div>
     </div>
@@ -269,6 +274,19 @@ select.fi-sm option{background:var(--sf)}
         </div>
       </div>
     </div>
+    <div id="sond-fields" style="display:none">
+      <div class="fl" style="margin-bottom:8px">Sondage</div>
+      <div class="fgrid">
+        <div class="mf" style="grid-column:1/-1"><div class="ml">Type de sondage</div><input class="fi-sm" id="s-type" type="text" placeholder="ex: Poinçon, Carottage, Endoscope..."></div>
+        <div class="mf" style="grid-column:1/-1"><div class="ml">Dimensions / mesures</div>
+          <input class="fi-sm" id="s-dim" type="text" placeholder="ex: Ø50mm, prof. 120mm, e=25mm...">
+        </div>
+        <div class="mf" style="grid-column:1/-1"><div class="ml">Résultat / observation</div>
+          <textarea class="fi-sm" id="s-obs" rows="3" style="resize:none;line-height:1.4" placeholder="ex: Bois sain jusqu'à 15mm, carbonisé en surface..."></textarea>
+        </div>
+      </div>
+    </div>
+
     <div class="fg"><div class="fl">Localisation</div><input class="fi" id="obs-loc" placeholder="ex: Poteau P3, face sud, à 1m20 du sol"></div>
     <div class="fg"><div class="fl">Observation</div><textarea class="fi" id="obs-txt" placeholder="Description, matériaux, gravité estimée…"></textarea></div>
     <div class="fg">
@@ -693,6 +711,11 @@ function openEditObs(id, keepPhotos){
     document.getElementById('f-ori').value=o.fissure.ori||'';
     document.getElementById('f-act').value=o.fissure.act||'';
   }
+  if(o.type==='sondage'&&o.sondage){
+    document.getElementById('s-type').value=o.sondage.stype||'';
+    document.getElementById('s-dim').value=o.sondage.dim||'';
+    document.getElementById('s-obs').value=o.sondage.obs||'';
+  }
   if(!keepPhotos) curPhotos=(o.photos||[]).map(p=>({src:p.src}));
   renderPhotoRow(curPhotos); openSheet();
 }
@@ -704,6 +727,9 @@ function clearSheet(){
   document.getElementById('obs-txt').value='';
   ['f-larg','f-long'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('f-ori').value=''; document.getElementById('f-act').value='';
+  document.getElementById('s-type').value='';
+  document.getElementById('s-dim').value='';
+  document.getElementById('s-obs').value='';
   curPhotos=[]; renderPhotoRow([]);
 }
 
@@ -712,9 +738,11 @@ function setType(t){
   curType=t;
   document.getElementById('tb-f').className='tb'+(t==='fissure'?' af':'');
   document.getElementById('tb-v').className='tb'+(t==='visuel'?' av':'');
+  document.getElementById('tb-s').className='tb'+(t==='sondage'?' as':'');
   document.getElementById('tb-a').className='tb'+(t==='autre'?' aa':'');
   document.getElementById('fiss-fields').style.display=t==='fissure'?'block':'none';
-  document.getElementById('pin-prev').className='pin-prev t-'+t;
+  document.getElementById('sond-fields').style.display=t==='sondage'?'block':'none';
+  document.getElementById('pin-prev').className='pin-prev t-'+(t==='sondage'?'sondage':t);
 }
 
 function renderPhotoRow(photos){
@@ -912,6 +940,7 @@ function saveObs(){
   const pinLabel=document.getElementById('pin-label').value.trim();
   if(!text&&!loc&&curPhotos.length===0){toast('Ajoutez une observation, localisation ou photo');return;}
   const d={type:curType,text,loc,pinLabel,photos:curPhotos.map(p=>({src:p.src})),date:new Date().toLocaleString('fr-FR')};
+  if(curType==='sondage') d.sondage={stype:document.getElementById('s-type').value,dim:document.getElementById('s-dim').value,obs:document.getElementById('s-obs').value};
   if(curType==='fissure') d.fissure={larg:document.getElementById('f-larg').value,long:document.getElementById('f-long').value,ori:document.getElementById('f-ori').value,act:document.getElementById('f-act').value};
   if(editId!==null){const o=obs.find(x=>x.id===editId);Object.assign(o,d);}
   else{d.id=nxtId();d.pos=pendPos;obs.push(d);}
@@ -1145,7 +1174,7 @@ function expJSON(){dl(new Blob([JSON.stringify({proj,obs,planImg},null,2)],{type
 
 function expCSV(){
   const hdr=['ID','Pin','Type','Localisation','Observation','Date','Larg.(mm)','Long.(cm)','Orientation','Activité','Photos','Photos localisées'];
-  const rows=obs.map(o=>['OBS-'+String(o.id).padStart(3,'0'),o.pinLabel||'',o.type,o.loc||'',o.text||'',o.date,o.fissure?.larg||'',o.fissure?.long||'',o.fissure?.ori||'',o.fissure?.act||'',(o.photos||[]).length,(o.photos||[]).filter(p=>p.pos).length]);
+  const rows=obs.map(o=>['OBS-'+String(o.id).padStart(3,'0'),o.pinLabel||'',o.type,o.loc||'',o.text||'',o.date,o.fissure?.larg||'',o.fissure?.long||'',o.fissure?.ori||'',o.fissure?.act||'',o.sondage?.stype||'',o.sondage?.dim||'',o.sondage?.obs||'',(o.photos||[]).length]);
   dl(new Blob(['\uFEFF',[hdr,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n')],{type:'text/csv;charset=utf-8'}),(proj.ref||'mission')+'_observations.csv');
   toast('CSV exporté');
 }
@@ -1207,7 +1236,7 @@ async function expPDF(){
       const fontSize = Math.round(11 * pinScale);
       obs.forEach(o => {
         if(!o.pos) return;
-        const col = o.type==='fissure' ? [224,82,82] : o.type==='visuel' ? [74,158,255] : [154,151,160];
+        const col = o.type==='fissure' ? [224,82,82] : o.type==='visuel' ? [74,158,255] : o.type==='sondage' ? [76,175,125] : [154,151,160];
         const lbl = o.pinLabel || String(o.id).padStart(2,'0');
         const x = o.pos.x, y = o.pos.y;
         const cy = y - pinR*1.5;
@@ -1331,7 +1360,7 @@ async function expPDF(){
     if(curY+ROW_H > PB-18){ curPg++; curY=addTabPage(curPg); curY=drawHdrs(curY); }
     // Fond alterné
     if(idx%2===0){ doc.setFillColor(248,248,252); doc.rect(mP,curY,tableW,ROW_H,'F'); }
-    const col=o.type==='fissure'?[200,40,40]:o.type==='visuel'?[30,100,200]:[100,100,120];
+    const col=o.type==='fissure'?[200,40,40]:o.type==='visuel'?[30,100,200]:o.type==='sondage'?[50,160,100]:[100,100,120];
     const lbl=o.pinLabel||String(o.id).padStart(2,'0');
     const rowData=[
       'OBS-'+String(o.id).padStart(3,'0'), lbl, o.type.toUpperCase(),
