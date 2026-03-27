@@ -426,6 +426,7 @@ select.fi-sm option{background:var(--sf)}
     <div class="ec" onclick="expJSON()"><div class="ec-ic" style="background:var(--ac2)"><svg viewBox="0 0 24 24" stroke="var(--ac)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><h3>Sauvegarde complète</h3><p>JSON — toutes données + photos</p></div><div class="ec-b" style="background:var(--ac2);color:var(--ac)">JSON</div></div>
     <div class="ec" onclick="expCSV()"><div class="ec-ic" style="background:var(--grn2)"><svg viewBox="0 0 24 24" stroke="var(--grn)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg></div><div><h3>Tableau CSV</h3><p>Observations + mesures fissures</p></div><div class="ec-b" style="background:var(--grn2);color:var(--grn)">CSV</div></div>
     <div class="ec" onclick="expPDF()"><div class="ec-ic" style="background:var(--blu2)"><svg viewBox="0 0 24 24" stroke="var(--blu)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="19" x2="12" y2="19"/></svg></div><div><h3>Rapport PDF</h3><p>Plan A4 paysage + tableau portrait</p></div><div class="ec-b" style="background:var(--blu2);color:var(--blu)">PDF</div></div>
+    <div class="ec" onclick="expFiches()"><div class="ec-ic" style="background:rgba(240,165,0,0.15)"><svg viewBox="0 0 24 24" stroke="var(--ac)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div><div><h3>Fiches PDF</h3><p>Une fiche A4 par observation</p></div><div class="ec-b" style="background:var(--ac2);color:var(--ac)">FICHES</div></div>
     <div class="ec" onclick="expWord()"><div class="ec-ic" style="background:rgba(37,99,235,0.15)"><svg viewBox="0 0 24 24" stroke="#3b82f6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><h3>Rapport Word</h3><p>Document .docx BTP Ingénierie</p></div><div class="ec-b" style="background:rgba(37,99,235,0.15);color:#3b82f6">DOCX</div></div>
   </div>
   <div class="nav">
@@ -1255,133 +1256,338 @@ function renderExp(){
 
 function expJSON(){dl(new Blob([JSON.stringify({proj,obs,planImg},null,2)],{type:'application/json'}),(proj.ref||'mission')+'_diagterrain.json');toast('Sauvegarde exportée');}
 
+async function expFiches(){
+  if(!obs.length){ toast('Aucune observation'); return; }
+  toast('Génération des fiches...');
+  try{
+    const { jsPDF } = window.jspdf;
+    const PA=210, PB=297, marg=14;
+    const ORANGE=[240,165,0], GRAY=[200,200,200], DARK=[50,50,50], LTGRAY=[245,245,245];
+    const colRgb = t => t==='fissure'?[224,82,82]:t==='visuel'?[74,158,255]:t==='sondage'?[76,175,125]:[154,151,160];
+
+    const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+    const TW = PA - 2*marg; // largeur utile
+
+    // ── Fonctions helpers ──
+    const drawHeader = (o, pageNum, total) => {
+      // En-tête BTP style rapport
+      doc.setFillColor(255,255,255); doc.rect(0,0,PA,PB,'F');
+      // Infos mission haut gauche
+      doc.setFontSize(7); doc.setTextColor(150,150,150); doc.setFont('helvetica','normal');
+      doc.text(proj.name||'', marg, 8);
+      doc.text('Ref. '+(proj.ref||'—')+'  |  '+(proj.ing||'')+'  |  '+(proj.date||''), marg, 13);
+      // Logo haut droit
+      try{ doc.addImage(LOGO_WHITE,'JPEG', PA-marg-36, 3, 34, 11); }catch(e){}
+      // Trait orange
+      doc.setDrawColor(...ORANGE); doc.setLineWidth(0.5);
+      doc.line(marg, 17, PA-marg, 17);
+      // Numéro de page
+      doc.setFontSize(7); doc.setTextColor(150,150,150);
+      doc.text(pageNum+'/'+total, PA-marg, 13, {align:'right'});
+    };
+
+    const drawFooter = () => {
+      doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3);
+      doc.line(marg, PB-10, PA-marg, PB-10);
+      doc.setFontSize(6.5); doc.setTextColor(150,150,150); doc.setFont('helvetica','normal');
+      doc.text('BTP INGENIERIE – AGENCE SUD – 31 place Jules Grandclément, 69100 Villeurbanne', PA/2, PB-6, {align:'center'});
+    };
+
+    const drawBandeau = (y, txt, fill, txtColor) => {
+      doc.setFillColor(...fill); doc.rect(marg, y, TW, 9, 'F');
+      doc.setFontSize(9); doc.setTextColor(...txtColor); doc.setFont('helvetica','bold');
+      doc.text(txt, PA/2, y+6.2, {align:'center'});
+      return y+9;
+    };
+
+    const total = obs.length;
+    let firstPage = true;
+
+    for(let i=0; i<obs.length; i++){
+      const o = obs[i];
+      const lbl = o.pinLabel || String(o.id).padStart(2,'0');
+      const col = colRgb(o.type);
+
+      if(!firstPage) doc.addPage();
+      firstPage = false;
+
+      drawHeader(o, i+1, total);
+      drawFooter();
+
+      let y = 20;
+
+      // ── Bandeau titre fiche ──
+      const typeLabel = o.type==='fissure'?'FISSURATION':o.type==='visuel'?'OBSERVATION VISUELLE':o.type==='sondage'?'SONDAGE':'OBSERVATION';
+      const titreRef = (proj.ref||'') + ' – ' + typeLabel + ' N°' + lbl;
+      const titreLoc = o.loc ? ' – ' + o.loc : '';
+      y = drawBandeau(y, titreRef + titreLoc, ORANGE, [255,255,255]);
+      y += 4;
+
+      // ── Photo principale (grande, pleine largeur) ──
+      const photos = o.photos||[];
+      if(photos.length > 0 && photos[0].src){
+        try{
+          const imgH = 110; // hauteur photo principale
+          doc.addImage(photos[0].src,'JPEG', marg, y, TW, imgH);
+          y += imgH + 2;
+          // Légende photo
+          const fname = photoFileName(o, 0);
+          doc.setFontSize(8); doc.setTextColor(...ORANGE); doc.setFont('helvetica','italic');
+          doc.text(fname, PA/2, y+4, {align:'center'});
+          y += 8;
+        }catch(e){}
+      } else {
+        // Placeholder si pas de photo
+        doc.setFillColor(...LTGRAY); doc.rect(marg, y, TW, 60, 'F');
+        doc.setFontSize(9); doc.setTextColor(180,180,180);
+        doc.text('Pas de photo', PA/2, y+32, {align:'center'});
+        y += 64;
+      }
+
+      // ── Bandeau "Observation" ──
+      y = drawBandeau(y, 'Observation', LTGRAY, DARK);
+      y += 5;
+
+      // ── Texte observation ──
+      doc.setFontSize(9); doc.setTextColor(...DARK); doc.setFont('helvetica','normal');
+      if(o.text){
+        const lines = doc.splitTextToSize(o.text, TW-10);
+        lines.forEach(line => {
+          // Puce orange
+          doc.setFillColor(...ORANGE); doc.rect(marg+2, y+1.5, 3, 3, 'F');
+          doc.setTextColor(...DARK);
+          doc.text(line, marg+8, y+4);
+          y += 6;
+        });
+        y += 3;
+      }
+
+      // ── Données spécifiques selon type ──
+      if(o.type==='fissure' && o.fissure){
+        y = drawBandeau(y, 'Caractéristiques de la fissure', [240,240,240], DARK);
+        y += 4;
+        const fissData = [
+          ['Largeur', (o.fissure.larg||'—')+' mm'],
+          ['Longueur', (o.fissure.long||'—')+' cm'],
+          ['Orientation', o.fissure.ori||'—'],
+          ['Activité', o.fissure.act||'—'],
+        ].filter(d=>d[1]&&d[1]!=='—');
+        fissData.forEach(([k,v])=>{
+          doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...ORANGE);
+          doc.text(k+' :', marg+4, y+4);
+          doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          doc.text(v, marg+45, y+4);
+          y += 7;
+        });
+        y += 2;
+      }
+
+      if(o.type==='sondage' && o.sondage){
+        y = drawBandeau(y, 'Données du sondage', [240,240,240], DARK);
+        y += 4;
+        const sondData = [
+          ['Type', o.sondage.stype||'—'],
+          ['Dimensions', o.sondage.dim||'—'],
+          ['Résultat', o.sondage.obs||'—'],
+        ].filter(d=>d[1]&&d[1]!=='—');
+        sondData.forEach(([k,v])=>{
+          doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...ORANGE);
+          doc.text(k+' :', marg+4, y+4);
+          doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+          const lines2 = doc.splitTextToSize(v, TW-55);
+          lines2.forEach((l2, li)=>{ doc.text(l2, marg+45, y+4+li*6); });
+          y += Math.max(7, lines2.length*6+2);
+        });
+        y += 2;
+      }
+
+      // ── Photos supplémentaires (2 par ligne) ──
+      if(photos.length > 1){
+        y = drawBandeau(y, 'Vues complémentaires', [240,240,240], DARK);
+        y += 4;
+        const phW = (TW-6)/2;
+        const phH = phW * 0.65;
+        for(let pi=1; pi<photos.length; pi+=2){
+          if(y + phH + 14 > PB-14) break; // pas de dépassement
+          try{
+            const ph1 = photos[pi];
+            if(ph1.src) doc.addImage(ph1.src,'JPEG', marg, y, phW, phH);
+            const ph2 = photos[pi+1];
+            if(ph2&&ph2.src) doc.addImage(ph2.src,'JPEG', marg+phW+6, y, phW, phH);
+          }catch(e){}
+          // Légendes
+          doc.setFontSize(7); doc.setTextColor(...ORANGE); doc.setFont('helvetica','italic');
+          doc.text(photoFileName(o, pi), marg+phW/2, y+phH+3, {align:'center'});
+          if(photos[pi+1]) doc.text(photoFileName(o, pi+1), marg+phW+6+phW/2, y+phH+3, {align:'center'});
+          y += phH + 8;
+        }
+      }
+
+      // ── Localisation sur plan (miniature) ──
+      if(planImg && o.pos){
+        const planMiniH = Math.min(45, PB-y-18);
+        if(planMiniH > 20 && y + planMiniH < PB-14){
+          // Créer miniature du plan avec ce pin mis en évidence
+          const c2 = document.createElement('canvas');
+          const baseImg2 = new Image();
+          baseImg2.src = planImg;
+          await new Promise(r=>{baseImg2.onload=r;baseImg2.onerror=r;});
+          c2.width=baseImg2.width; c2.height=baseImg2.height;
+          const ctx2=c2.getContext('2d');
+          ctx2.drawImage(baseImg2,0,0);
+          // Dessiner le pin de cette obs en surbrillance
+          const ps=Math.max(c2.width,c2.height)/800;
+          const pr=Math.round(20*ps);
+          const x2=o.pos.x, y2=o.pos.y;
+          // Halo
+          ctx2.beginPath(); ctx2.arc(x2,y2-pr*1.5,pr*1.8,0,Math.PI*2);
+          ctx2.fillStyle='rgba(240,165,0,0.25)'; ctx2.fill();
+          // Pin
+          ctx2.beginPath(); ctx2.arc(x2,y2-pr*1.5,pr,0,Math.PI*2);
+          ctx2.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx2.fill();
+          ctx2.beginPath(); ctx2.arc(x2,y2-pr*1.5,pr,0,Math.PI*2);
+          ctx2.strokeStyle='white'; ctx2.lineWidth=ps*2; ctx2.stroke();
+          // Label
+          ctx2.fillStyle='white'; ctx2.font=`bold ${Math.round(14*ps)}px monospace`;
+          ctx2.textAlign='center'; ctx2.textBaseline='middle';
+          ctx2.fillText(lbl, x2, y2-pr*1.5);
+          const mini = c2.toDataURL('image/jpeg',0.85);
+          try{
+            doc.addImage(mini,'JPEG', PA-marg-60, y, 60, planMiniH);
+            doc.setFontSize(7); doc.setTextColor(150,150,150);
+            doc.text('Localisation sur plan', PA-marg-30, y+planMiniH+3, {align:'center'});
+          }catch(e){}
+        }
+      }
+    }
+
+    doc.save((proj.ref||'mission')+'_fiches.pdf');
+    toast(obs.length+' fiche(s) PDF générée(s)');
+  }catch(err){ console.error('Fiches error:', err); toast('Erreur : '+err.message); }
+}
+
+
 async function expWord(){
   if(typeof JSZip === 'undefined'){ toast('JSZip non chargé'); return; }
   toast('Génération Word...');
   try{
     const zip = new JSZip();
-    const ref = proj.ref||'mission';
-    const name = proj.name||'';
-    const ing = proj.ing||'';
-    const date = proj.date||'';
-
-    // ── Helpers XML ──
-    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const ref  = proj.ref||'mission';
+    const escX = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const ORANGE = 'F0A500';
-    const DARK   = '0F1117';
     const colHex = t => t==='fissure'?'E05252':t==='visuel'?'4A9EFF':t==='sondage'?'4CAF7D':'9A97A0';
+    const bord = `<w:top w:val="single" w:sz="4" w:color="CCCCCC"/><w:left w:val="single" w:sz="4" w:color="CCCCCC"/><w:bottom w:val="single" w:sz="4" w:color="CCCCCC"/><w:right w:val="single" w:sz="4" w:color="CCCCCC"/>`;
+    const cm = `<w:tcMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>`;
 
-    // ── Styles ──
+    const mkCell = (txt, w2, bold, color, fill) => {
+      const sh = fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : '';
+      return `<w:tc><w:tcPr><w:tcW w:w="${w2}" w:type="dxa"/>${sh}<w:tcBorders>${bord}</w:tcBorders>${cm}</w:tcPr>`
+        + `<w:p><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>${bold?'<w:b/>':''}<w:sz w:val="16"/>`
+        + `${color?`<w:color w:val="${color}"/>`:''}` 
+        + `</w:rPr><w:t xml:space="preserve">${escX(txt)}</w:t></w:r></w:p></w:tc>`;
+    };
+
+    // ── PAGE 1 : Plan paysage ──────────────────────────────────────────
+    // A4 paysage : 16838 x 11906 twips, marges 720 (~1.25cm)
+    const LW = 15398; // 16838 - 2*720
+    let p1body = '';
+    // En-tête
+    p1body += `<w:p><w:pPr><w:spacing w:after="60"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="28"/><w:color w:val="${ORANGE}"/></w:rPr>
+        <w:t xml:space="preserve">${escX(proj.name||'Diagnostic structurel')}</w:t></w:r></w:p>`;
+    p1body += `<w:p><w:pPr><w:spacing w:after="80"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="${ORANGE}"/></w:pBdr></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr>
+        <w:t xml:space="preserve">Réf. ${escX(proj.ref||'—')}   |   Chargé d&#x2019;affaire : ${escX(proj.ing||'—')}   |   Date : ${escX(proj.date||'—')}</w:t></w:r></w:p>`;
+    p1body += `<w:p><w:pPr><w:spacing w:before="80" w:after="60"/><w:shd w:val="clear" w:color="auto" w:fill="${ORANGE}"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="20"/><w:color w:val="FFFFFF"/></w:rPr>
+        <w:t xml:space="preserve">  PLAN ANNOTÉ DES OBSERVATIONS</w:t></w:r></w:p>`;
+
+    let imgRel = '';
+    if(planImg){
+      const b64 = planImg.split(',')[1];
+      if(b64){
+        zip.folder('word/media').file('plan.jpg', b64, {base64:true});
+        imgRel = `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/plan.jpg"/>`;
+        // Pleine largeur paysage : ~15cm => 8640000 EMU, hauteur auto ~55%
+        const emuW = 8640000;
+        const emuH = Math.round(emuW * 0.62);
+        p1body += `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="80" w:after="0"/></w:pPr>
+          <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
+            <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+              <wp:extent cx="${emuW}" cy="${emuH}"/>
+              <wp:docPr id="1" name="Plan"/>
+              <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                  <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <pic:nvPicPr><pic:cNvPr id="1" name="plan"/><pic:cNvPicPr/></pic:nvPicPr>
+                    <pic:blipFill><a:blip r:embed="rId2" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+                    <pic:spPr><a:xfrm><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+                  </pic:pic>
+                </a:graphicData>
+              </a:graphic>
+            </wp:inline></w:drawing></w:r></w:p>`;
+      }
+    }
+
+    // Légende pin en bas
+    p1body += `<w:p><w:pPr><w:spacing w:before="120" w:after="0"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="E05252"/></w:rPr><w:t xml:space="preserve">● Fissuration   </w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="4A9EFF"/></w:rPr><w:t xml:space="preserve">● Visuel   </w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="4CAF7D"/></w:rPr><w:t xml:space="preserve">● Sondage   </w:t></w:r>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="16"/><w:color w:val="9A97A0"/></w:rPr><w:t xml:space="preserve">● Autre</w:t></w:r></w:p>`;
+
+    // ── PAGE 2 : Tableau paysage ───────────────────────────────────────
+    let p2body = '';
+    p2body += `<w:p><w:pPr><w:spacing w:before="0" w:after="80"/><w:shd w:val="clear" w:color="auto" w:fill="${ORANGE}"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="20"/><w:color w:val="FFFFFF"/></w:rPr>
+        <w:t xml:space="preserve">  RELEVÉ DES OBSERVATIONS</w:t></w:r></w:p>`;
+
+    // Colonnes paysage : largeur totale ~15400 twips
+    const cols = [1300,900,1200,2800,3600,1400,900,1000,1200,900,1200];
+    const hdrs = ['Réf.','Pin','Type','Localisation','Observation','Date','L.(mm)','Long.(cm)','Orient.','Act.','Sondage'];
+    const tW = cols.reduce((a,b)=>a+b,0);
+
+    p2body += `<w:tbl><w:tblPr><w:tblW w:w="${tW}" w:type="dxa"/><w:tblBorders>${bord}</w:tblBorders></w:tblPr>
+      <w:tblGrid>${cols.map(c=>`<w:gridCol w:w="${c}"/>`).join('')}</w:tblGrid>`;
+    p2body += `<w:tr>${hdrs.map((h,i)=>mkCell(h,cols[i],true,ORANGE,'1A1D27')).join('')}</w:tr>`;
+    obs.forEach((o,ri)=>{
+      const lbl = o.pinLabel||String(o.id).padStart(2,'0');
+      const fill = ri%2===0?'F5F5FA':'FFFFFF';
+      const tc = colHex(o.type);
+      const sondInfo = o.sondage ? [o.sondage.stype,o.sondage.dim].filter(Boolean).join(' / ') : '';
+      const vals = [
+        'OBS-'+String(o.id).padStart(3,'0'), lbl, o.type.toUpperCase(),
+        o.loc||'', o.text||'', (o.date||'').split(' ')[0]||'',
+        o.fissure?.larg||'', o.fissure?.long||'', o.fissure?.ori||'', o.fissure?.act||'',
+        sondInfo
+      ];
+      p2body += `<w:tr>${vals.map((v,i)=>mkCell(v,cols[i],i===2,i===2?tc:null,fill)).join('')}</w:tr>`;
+    });
+    p2body += `</w:tbl>`;
+
+    // ── Assemblage : deux sections paysage ──────────────────────────────
+    // A4 paysage dans docx : w=16838 h=11906
+    const paysageSect = `<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>`;
+
+    const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:body>
+    ${p1body}
+    <w:p><w:pPr><w:sectPr>${paysageSect}</w:sectPr></w:pPr></w:p>
+    ${p2body}
+    <w:sectPr>${paysageSect}</w:sectPr>
+  </w:body>
+</w:document>`;
+
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/></w:rPr></w:rPrDefault></w:docDefaults>
 </w:styles>`;
 
-    // ── Construction du document XML ──
-    let body = '';
-
-    // En-tête : titre affaire
-    body += `<w:p><w:pPr><w:spacing w:after="60"/><w:shd w:val="clear" w:color="auto" w:fill="${DARK}"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="32"/><w:color w:val="${ORANGE}"/></w:rPr><w:t xml:space="preserve">Rapport de diagnostic – ${esc(name)}</w:t></w:r>
-    </w:p>`;
-    body += `<w:p><w:pPr><w:spacing w:after="40"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/><w:color w:val="666666"/></w:rPr>
-        <w:t xml:space="preserve">Référence : ${esc(ref)}   |   Chargé d&#x2019;affaire : ${esc(ing)}   |   Date : ${esc(date)}</w:t>
-      </w:r></w:p>`;
-    // Ligne orange séparatrice
-    body += `<w:p><w:pPr><w:spacing w:before="0" w:after="120"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="${ORANGE}"/></w:pBdr></w:pPr></w:p>`;
-
-    // Titre section
-    body += `<w:p><w:pPr><w:spacing w:before="120" w:after="80"/><w:shd w:val="clear" w:color="auto" w:fill="${ORANGE}"/></w:pPr>
-      <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="22"/><w:color w:val="FFFFFF"/></w:rPr>
-        <w:t xml:space="preserve">  RELEVÉ DES OBSERVATIONS</w:t></w:r></w:p>`;
-
-    // ── Tableau observations ──
-    const cols = [1200,900,1100,2800,3500,1400,900,1000,1100,900];
-    const hdrs = ['Réf.','Pin','Type','Localisation','Observation','Date','L.(mm)','Long.(cm)','Orient.','Activité'];
-    const totalW = cols.reduce((a,b)=>a+b,0);
-    const bord = `<w:top w:val="single" w:sz="4" w:color="CCCCCC"/><w:left w:val="single" w:sz="4" w:color="CCCCCC"/><w:bottom w:val="single" w:sz="4" w:color="CCCCCC"/><w:right w:val="single" w:sz="4" w:color="CCCCCC"/>`;
-    const cellMargins = `<w:tcMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>`;
-
-    const mkCell = (txt, w2, bold, color, fill) => {
-      const fillAttr = fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : '';
-      return `<w:tc><w:tcPr><w:tcW w:w="${w2}" w:type="dxa"/>${fillAttr}<w:tcBorders>${bord}</w:tcBorders>${cellMargins}</w:tcPr>
-        <w:p><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>${bold?'<w:b/>':''}<w:sz w:val="16"/>${color?`<w:color w:val="${color}"/>`:''}
-        </w:rPr><w:t xml:space="preserve">${esc(txt)}</w:t></w:r></w:p></w:tc>`;
-    };
-
-    body += `<w:tbl><w:tblPr><w:tblW w:w="${totalW}" w:type="dxa"/><w:tblBorders>${bord}</w:tblBorders></w:tblPr>
-      <w:tblGrid>${cols.map(c=>`<w:gridCol w:w="${c}"/>`).join('')}</w:tblGrid>`;
-    // En-tête tableau
-    body += `<w:tr>${hdrs.map((h,i)=>mkCell(h,cols[i],true,ORANGE,'1A1D27')).join('')}</w:tr>`;
-    // Lignes observations
-    obs.forEach((o,ri)=>{
-      const lbl = o.pinLabel||String(o.id).padStart(2,'0');
-      const fill = ri%2===0 ? 'F5F5FA' : 'FFFFFF';
-      const tc = colHex(o.type);
-      const vals = [
-        'OBS-'+String(o.id).padStart(3,'0'), lbl, o.type.toUpperCase(),
-        o.loc||'', o.text||'', (o.date||'').split(' ')[0]||'',
-        o.fissure?.larg||'', o.fissure?.long||'', o.fissure?.ori||'', o.fissure?.act||''
-      ];
-      body += `<w:tr>${vals.map((v,i)=>mkCell(v,cols[i],i===2,i===2?tc:null,fill)).join('')}</w:tr>`;
-    });
-    body += `</w:tbl>`;
-
-    // Espace après tableau
-    body += `<w:p><w:pPr><w:spacing w:before="200" w:after="0"/></w:pPr></w:p>`;
-
-    // ── Plan annoté comme image si disponible ──
-    let imgRel = '';
-    let imgXml = '';
-    let planB64 = null;
-    if(planImg){
-      // Extraire le base64 pur
-      const b64 = planImg.split(',')[1];
-      if(b64){
-        planB64 = b64;
-        zip.folder('word/media').file('plan.jpg', b64, {base64:true});
-        imgRel = `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/plan.jpg"/>`;
-        // ~16cm de large = 5760000 EMU, ratio auto
-        const emuW = 5760000;
-        const emuH = Math.round(5760000 * 0.7);
-        imgXml = `<w:p><w:pPr><w:spacing w:before="240" w:after="120"/><w:jc w:val="center"/></w:pPr>
-          <w:r><w:rPr><w:noProof/></w:rPr>
-          <w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-            <wp:extent cx="${emuW}" cy="${emuH}"/>
-            <wp:docPr id="1" name="Plan"/>
-            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                  <pic:nvPicPr><pic:cNvPr id="1" name="plan"/><pic:cNvPicPr/></pic:nvPicPr>
-                  <pic:blipFill><a:blip r:embed="rId2" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
-                  <pic:spPr><a:xfrm><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
-                </pic:pic>
-              </a:graphicData>
-            </a:graphic>
-          </wp:inline></w:drawing></w:r></w:p>`;
-
-        body += `<w:p><w:pPr><w:spacing w:before="240" w:after="80"/><w:shd w:val="clear" w:color="auto" w:fill="${ORANGE}"/></w:pPr>
-          <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="22"/><w:color w:val="FFFFFF"/></w:rPr>
-            <w:t xml:space="preserve">  PLAN ANNOTÉ</w:t></w:r></w:p>`;
-        body += imgXml;
-      }
-    }
-
-    // ── Document XML final ──
-    const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-  <w:body>${body}
-    <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="850" w:bottom="1134" w:left="850"/></w:sectPr>
-  </w:body>
-</w:document>`;
-
-    // ── Relations ──
     const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
@@ -1393,7 +1599,7 @@ async function expWord(){
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`;
 
-    const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
@@ -1402,8 +1608,7 @@ async function expWord(){
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`;
 
-    // ── Assemblage ZIP ──
-    zip.file('[Content_Types].xml', contentTypes);
+    zip.file('[Content_Types].xml', ct);
     zip.file('_rels/.rels', appRels);
     zip.folder('word').file('document.xml', docXml);
     zip.folder('word').file('styles.xml', styles);
@@ -1411,8 +1616,8 @@ async function expWord(){
 
     const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = ref+'_rapport.docx'; a.click();
+    const a2 = document.createElement('a');
+    a2.href = url; a2.download = ref+'_rapport.docx'; a2.click();
     setTimeout(()=>URL.revokeObjectURL(url), 5000);
     toast('Word généré !');
   }catch(err){ console.error('Word error:', err); toast('Erreur Word : '+err.message); }
