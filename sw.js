@@ -1,4 +1,4 @@
-const CACHE = 'diagterrain-v24';
+const CACHE = 'diagterrain-v26';
 const ASSETS = [
   '/diagterrain/',
   '/diagterrain/index.html',
@@ -57,4 +57,17 @@ self.addEventListener('fetch', e => {
         return fetch(e.request).then(response => {
           if (response && response.status === 200) {
             const clone = response.clone();
-            caches.open(CACHE).then(cache => cache.put(e.request, clon
+            caches.open(CACHE).then(cache => cache.put(e.request, clone));
+          }
+          return response;
+        }).catch(() => cached);
+      })
+    );
+    return;
+  }
+});
+
+// Message depuis l'app pour forcer la mise à jour
+self.addEventListener('message', e => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
+});
