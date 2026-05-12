@@ -153,8 +153,14 @@ select.fi-sm option{background:var(--sf)}
 .h-card-ic svg{width:20px;height:20px;stroke:var(--ac);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .h-card h3{font-size:20px;font-weight:500;margin-bottom:2px}
 .h-card p{font-size:20px;color:var(--tx2);line-height:1.35}
-.toast{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(10px);background:var(--sf2);border:0.5px solid var(--br2);border-radius:99px;padding:9px 18px;font-size:20px;color:var(--tx);z-index:400;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(10px);background:var(--sf2);border:0.5px solid var(--br2);border-radius:99px;padding:9px 18px;font-size:20px;color:var(--tx);z-index:400;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:14px;max-width:92vw}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.has-action{pointer-events:auto}
+.toast-action{background:transparent;border:none;color:var(--ac);font-weight:600;font-size:20px;padding:4px 6px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em}
+.toast-action:active{opacity:.7}
+.ph-wrap{position:relative}
+.ph-trash{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;background:var(--red,#e05252);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4);z-index:2}
+.ph-trash svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #ibanner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:var(--ac);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px)) 16px;align-items:center;gap:12px}
 #ibanner p{flex:1;font-size:20px;font-weight:600;color:#000}
 .ib-no{background:rgba(0,0,0,.15);border:none;border-radius:8px;padding:7px 12px;font-size:20px;font-weight:600;color:#000;cursor:pointer}
@@ -247,7 +253,7 @@ select.fi-sm option{background:var(--sf)}
 </style>
 </head>
 <body>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast"><span id="toast-msg"></span><button class="toast-action" id="toast-action" style="display:none">Annuler</button></div>
 <div id="ibanner"><p>Installer DiagTerrain ?</p><button class="ib-no" onclick="document.getElementById('ibanner').style.display='none'">Plus tard</button><button class="ib-yes" onclick="installApp()">Installer</button></div>
 <div class="ov" id="ov" onclick="closeSheet()"></div>
 
@@ -855,8 +861,21 @@ function renderPhotoRow(photos){
   photos.forEach((ph,i)=>{
     const w=document.createElement('div'); w.className='ph-wrap';
     const img=document.createElement('img'); img.className='ph-thumb'; img.src=ph.src;
-    img.onclick=()=>{if(confirm('Supprimer cette photo ?')){curPhotos.splice(i,1);renderPhotoRow(curPhotos);}};
+    img.onclick=()=>previewPhoto(ph.src);
     w.appendChild(img);
+    // Bouton corbeille (suppression avec undo)
+    const trash=document.createElement('div');
+    trash.className='ph-trash';
+    trash.title='Supprimer la photo';
+    trash.innerHTML='<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+    trash.onclick=e=>{
+      e.stopPropagation();
+      const removed=curPhotos.splice(i,1)[0];
+      const idx=i;
+      renderPhotoRow(curPhotos);
+      toastUndo('Photo supprimée', ()=>{ curPhotos.splice(idx,0,removed); renderPhotoRow(curPhotos); });
+    };
+    w.appendChild(trash);
     // Bouton téléchargement
     const dl=document.createElement('div');
     dl.className='ph-badge unloc';
@@ -956,19 +975,37 @@ function openAffaire(id){
   }catch(e){ toast('Erreur chargement affaire'); }
 }
 
-// Supprimer une affaire
+// Supprimer une affaire (avec undo 5s)
 function deleteAffaire(id, e){
   e.stopPropagation();
-  if(!confirm('Supprimer cette affaire ?')) return;
+  // Sauvegarde des données avant suppression pour pouvoir restaurer
+  const savedData = localStorage.getItem(LS_PREFIX + id);
+  const savedPlan = localStorage.getItem(LS_PREFIX + id + '_plan');
+  const prevList  = getAffairesList();
+  const meta      = prevList.find(a => a.id === id);
+  if(!meta){ return; }
+  const wasCurrent = (currentAffaireId === id);
+  const prevState  = wasCurrent ? {proj:{...proj}, obs:[...obs], planImg, counter, currentAffaireId} : null;
+
+  // Suppression effective
   localStorage.removeItem(LS_PREFIX + id);
   localStorage.removeItem(LS_PREFIX + id + '_plan');
-  const list = getAffairesList().filter(a => a.id !== id);
-  saveAffairesList(list);
-  if(currentAffaireId === id){
+  saveAffairesList(prevList.filter(a => a.id !== id));
+  if(wasCurrent){
     currentAffaireId = null; proj = {name:'',ref:'',ing:'',date:''}; obs = []; planImg = null; counter = 0;
   }
   renderAffairesList();
-  toast('Affaire supprimée');
+
+  toastUndo('Affaire supprimée', ()=>{
+    if(savedData) localStorage.setItem(LS_PREFIX + id, savedData);
+    if(savedPlan) localStorage.setItem(LS_PREFIX + id + '_plan', savedPlan);
+    saveAffairesList(prevList);
+    if(prevState){
+      currentAffaireId = prevState.currentAffaireId;
+      proj = prevState.proj; obs = prevState.obs; planImg = prevState.planImg; counter = prevState.counter;
+    }
+    renderAffairesList();
+  });
 }
 
 // Renommer une affaire (inline)
@@ -1063,9 +1100,15 @@ function saveObs(){
 
 function deleteObs(){
   if(editId===null){closeSheet();return;}
-  if(!confirm('Supprimer ?'))return;
-  obs=obs.filter(o=>o.id!==editId);
-  closeSheet(); renderMk(); renderList(); autosave().catch(()=>{}); toast('Supprimé');
+  const idx=obs.findIndex(o=>o.id===editId);
+  if(idx<0){closeSheet();return;}
+  const removed=obs[idx];
+  obs.splice(idx,1);
+  closeSheet(); renderMk(); renderList(); autosave().catch(()=>{});
+  toastUndo('Observation supprimée', ()=>{
+    obs.splice(idx,0,removed);
+    renderMk(); renderList(); autosave().catch(()=>{});
+  });
 }
 
 function openSheet(){document.getElementById('ov').classList.add('on');document.getElementById('obs-sheet').classList.add('on');}
@@ -1806,7 +1849,39 @@ async function loadJSON(input){
 function toDataURL(f){return new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(f);});}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800);}
+let _toastTimer=null, _toastUndoFn=null;
+function _hideToast(){const t=document.getElementById('toast');t.classList.remove('on','has-action');document.getElementById('toast-action').style.display='none';_toastUndoFn=null;}
+function toast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-action').style.display='none';
+  t.classList.add('on'); t.classList.remove('has-action');
+  _toastUndoFn=null;
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(_hideToast,2800);
+}
+function toastUndo(msg, undoFn, ms){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  const btn=document.getElementById('toast-action');
+  btn.style.display='inline-block';
+  t.classList.add('on','has-action');
+  _toastUndoFn=undoFn;
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(_hideToast, ms||5000);
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const btn=document.getElementById('toast-action');
+  if(btn) btn.addEventListener('click',()=>{ const fn=_toastUndoFn; _hideToast(); clearTimeout(_toastTimer); if(fn) fn(); });
+});
+function previewPhoto(src){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:flex;align-items:center;justify-content:center';
+  ov.onclick=()=>ov.remove();
+  const img=document.createElement('img');
+  img.src=src; img.style.cssText='max-width:96vw;max-height:92vh;border-radius:8px;object-fit:contain';
+  ov.appendChild(img); document.body.appendChild(ov);
+}
 
 // PWA
 let deferredPrompt=null;
@@ -1934,14 +2009,7 @@ function recapDlPhoto(btn, fname){
   const a=document.createElement('a'); a.href=img.src; a.download=fname; a.click();
 }
 
-function recapPreviewPhoto(src){
-  const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:flex;align-items:center;justify-content:center';
-  ov.onclick=()=>ov.remove();
-  const img=document.createElement('img');
-  img.src=src; img.style.cssText='max-width:96vw;max-height:92vh;border-radius:8px;object-fit:contain';
-  ov.appendChild(img); document.body.appendChild(ov);
-}
+const recapPreviewPhoto = previewPhoto; // alias retro-compatibilite
 
 async function downloadAllPhotos(){
   const allPh=[];
