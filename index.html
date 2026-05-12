@@ -178,6 +178,16 @@ select.fi-sm option{background:var(--sf)}
 .plan-add:active{background:var(--ac);color:#000;border-style:solid}
 .plan-menu{position:fixed;bottom:0;left:0;right:0;z-index:300;background:var(--sf2);border-top:0.5px solid var(--br);border-radius:14px 14px 0 0;padding:14px calc(14px + env(safe-area-inset-left,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(14px + env(safe-area-inset-right,0px));display:none;flex-direction:column;gap:8px;transform:translateY(100%);transition:transform .2s}
 .plan-menu.on{display:flex;transform:translateY(0)}
+/* Modal de saisie (remplace prompt() natif, parfois casse en PWA fullscreen Android) */
+.prompt-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.92);z-index:301;background:var(--sf);border:0.5px solid var(--br2);border-radius:14px;padding:18px;min-width:280px;max-width:90vw;display:none;flex-direction:column;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transition:opacity .15s,transform .15s}
+.prompt-modal.on{display:flex;opacity:1;transform:translate(-50%,-50%) scale(1)}
+.prompt-title{font-size:16px;font-weight:600;color:var(--tx)}
+.prompt-input{padding:12px 14px;font-size:18px;background:var(--sf2);border:0.5px solid var(--br2);border-radius:8px;color:var(--tx);font-family:inherit;outline:none}
+.prompt-input:focus{border-color:var(--ac)}
+.prompt-actions{display:flex;gap:10px;margin-top:4px}
+.prompt-btn{flex:1;padding:12px;background:var(--sf2);border:0.5px solid var(--br2);border-radius:10px;color:var(--tx);font-size:16px;cursor:pointer;font-family:inherit}
+.prompt-btn.primary{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600}
+.prompt-btn:active{opacity:.7}
 .plan-menu-title{font-size:14px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;padding:4px 4px 8px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .plan-menu-btn{padding:14px;background:var(--bg);border-radius:10px;border:0.5px solid var(--br);color:var(--tx);font-size:18px;cursor:pointer;text-align:center}
 .plan-menu-btn:active{opacity:.7}
@@ -294,6 +304,14 @@ select.fi-sm option{background:var(--sf)}
   <div class="plan-menu-btn danger" id="plan-menu-delete" onclick="planMenuDelete()">Supprimer ce plan</div>
   <div class="plan-menu-btn cancel" onclick="closePlanMenu()">Annuler</div>
 </div>
+<div class="prompt-modal" id="prompt-modal">
+  <div class="prompt-title" id="prompt-title">—</div>
+  <input class="prompt-input" id="prompt-input" type="text" autocomplete="off" autocapitalize="sentences">
+  <div class="prompt-actions">
+    <button class="prompt-btn" id="prompt-cancel">Annuler</button>
+    <button class="prompt-btn primary" id="prompt-ok">OK</button>
+  </div>
+</div>
 <div class="toast" id="toast"><span id="toast-msg"></span><button class="toast-action" id="toast-action" style="display:none">Annuler</button></div>
 <div id="ibanner"><p>Installer DiagTerrain ?</p><button class="ib-no" onclick="document.getElementById('ibanner').style.display='none'">Plus tard</button><button class="ib-yes" onclick="installApp()">Installer</button></div>
 <div class="ov" id="ov" onclick="closeSheet()"></div>
@@ -391,6 +409,10 @@ select.fi-sm option{background:var(--sf)}
   <div style="padding:0 14px 8px;flex-shrink:0">
     <h1 class="h-title" style="font-size:28px;margin-bottom:6px">Diag<span style="color:var(--ac)">Terrain</span></h1>
     <p style="font-size:15px;color:var(--tx2)">Mes affaires</p>
+  </div>
+  <!-- Barre de recherche (visible uniquement si >= 4 affaires) -->
+  <div id="affaires-search-wrap" style="display:none;padding:8px 16px 0">
+    <input id="affaires-search" type="search" placeholder="Rechercher un nom, une réf, un ingénieur..." class="prompt-input" style="width:100%;padding:10px 14px;font-size:16px" oninput="setAffairesFilter(this.value)">
   </div>
   <!-- Liste des affaires -->
   <div style="flex:1;overflow-y:auto" id="affaires-list"></div>
@@ -754,11 +776,11 @@ function closePlanMenu(){
   document.getElementById('ov').onclick = null;
   _menuPlanIdx = -1;
 }
-function planMenuRename(){
+async function planMenuRename(){
   const idx = _menuPlanIdx; closePlanMenu();
   if(idx < 0) return;
   const current = plans[idx]?.name || '';
-  const newName = prompt('Nom du plan :', current);
+  const newName = await promptModal('Nom du plan', current, 'Ex: RDC, Façade Est...');
   if(newName !== null) renamePlan(idx, newName);
 }
 function planMenuReload(){
@@ -1421,13 +1443,13 @@ function deleteAffaire(id, e){
 // Renommer une affaire (inline). Synchronise aussi proj.name dans le LS de l'affaire
 // (sinon, a la prochaine ouverture, autosave reecrasait le nom de la liste avec
 // l'ancien proj.name).
-function renameAffaire(id, e){
+async function renameAffaire(id, e){
   if(e) e.stopPropagation();
   const list = getAffairesList();
   const affaire = list.find(a => a.id === id);
   if(!affaire) return;
-  const nom = prompt('Renommer l\'affaire :', affaire.name);
-  if(nom === null) return; // Annule
+  const nom = await promptModal('Renommer l\'affaire', affaire.name, 'Nom du projet');
+  if(nom === null) return;
   const trimmed = nom.trim();
   if(!trimmed) return;
   affaire.name = trimmed;
@@ -1451,18 +1473,37 @@ function renameAffaire(id, e){
   renderAffairesList();
 }
 
+// Filtre de recherche dans la liste d'affaires (nom, ref, ingenieur)
+let _affairesQuery = '';      // affichage (case-preserving)
+let _affairesQueryLower = ''; // matching
+function setAffairesFilter(q){
+  _affairesQuery = (q||'').trim();
+  _affairesQueryLower = _affairesQuery.toLowerCase();
+  renderAffairesList();
+}
+
 // Afficher la liste des affaires sur l'écran home
 function renderAffairesList(){
   const list = getAffairesList();
   const container = document.getElementById('affaires-list');
   const empty     = document.getElementById('affaires-empty');
+  const searchWrap = document.getElementById('affaires-search-wrap');
+  // Affichage de la barre de recherche seulement si l'utilisateur a plusieurs affaires
+  if(searchWrap) searchWrap.style.display = (list.length >= 4) ? 'block' : 'none';
   if(!list.length){
     container.innerHTML = '';
     empty.style.display = 'flex';
     return;
   }
   empty.style.display = 'none';
-  container.innerHTML = list.map(a => {
+  const filtered = _affairesQueryLower
+    ? list.filter(a => ((a.name||'')+' '+(a.ref||'')+' '+(a.ing||'')).toLowerCase().includes(_affairesQueryLower))
+    : list;
+  if(!filtered.length){
+    container.innerHTML = '<div style="padding:30px;text-align:center;color:var(--tx2);font-size:14px">Aucune affaire ne correspond à « '+esc(_affairesQuery)+' »</div>';
+    return;
+  }
+  container.innerHTML = filtered.map(a => {
     const d = new Date(a.savedAt);
     const ds = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     const isActive = a.id === currentAffaireId;
@@ -2542,6 +2583,38 @@ document.addEventListener('DOMContentLoaded',()=>{
   const btn=document.getElementById('toast-action');
   if(btn) btn.addEventListener('click',()=>{ const fn=_toastUndoFn; _hideToast(); clearTimeout(_toastTimer); if(fn) fn(); });
 });
+// Modal de saisie de texte (replacement du prompt() natif, plus fiable en PWA
+// fullscreen Android ou Chrome peut bloquer/ignorer les prompts).
+// Retourne une Promise<string|null> : null si annule, sinon la valeur saisie.
+function promptModal(title, defaultValue, placeholder){
+  return new Promise(resolve => {
+    const modal = document.getElementById('prompt-modal');
+    const inp = document.getElementById('prompt-input');
+    const ov = document.getElementById('ov');
+    document.getElementById('prompt-title').textContent = title || '';
+    inp.value = defaultValue || '';
+    inp.placeholder = placeholder || '';
+    modal.classList.add('on');
+    ov.classList.add('on');
+    setTimeout(() => { inp.focus(); inp.select(); }, 80);
+    const cleanup = () => {
+      modal.classList.remove('on');
+      ov.classList.remove('on');
+      document.getElementById('prompt-ok').onclick = null;
+      document.getElementById('prompt-cancel').onclick = null;
+      ov.onclick = null;
+      inp.onkeydown = null;
+    };
+    document.getElementById('prompt-ok').onclick = () => { const v = inp.value; cleanup(); resolve(v); };
+    document.getElementById('prompt-cancel').onclick = () => { cleanup(); resolve(null); };
+    ov.onclick = () => { cleanup(); resolve(null); };
+    inp.onkeydown = e => {
+      if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('prompt-ok').click(); }
+      if(e.key === 'Escape'){ document.getElementById('prompt-cancel').click(); }
+    };
+  });
+}
+
 function previewPhoto(src){
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:flex;align-items:center;justify-content:center';
