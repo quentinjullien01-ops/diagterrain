@@ -153,6 +153,21 @@ select.fi-sm option{background:var(--sf)}
 .h-card-ic svg{width:20px;height:20px;stroke:var(--ac);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .h-card h3{font-size:20px;font-weight:500;margin-bottom:2px}
 .h-card p{font-size:20px;color:var(--tx2);line-height:1.35}
+.plan-strip{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:0.5px solid var(--br);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.plan-strip::-webkit-scrollbar{display:none}
+.plan-chip{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:14px;border-radius:99px;border:0.5px solid var(--br2);background:var(--sf2);color:var(--tx2);cursor:pointer;white-space:nowrap;max-width:200px}
+.plan-chip.on{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600}
+.plan-chip-name{overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.plan-chip-menu{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.18);font-size:14px;line-height:1;cursor:pointer;flex-shrink:0}
+.plan-add{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--sf2);border:0.5px dashed var(--br2);color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;padding:0}
+.plan-add:active{background:var(--ac);color:#000;border-style:solid}
+.plan-menu{position:fixed;bottom:0;left:0;right:0;z-index:300;background:var(--sf2);border-top:0.5px solid var(--br);border-radius:14px 14px 0 0;padding:14px calc(14px + env(safe-area-inset-left,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(14px + env(safe-area-inset-right,0px));display:none;flex-direction:column;gap:8px;transform:translateY(100%);transition:transform .2s}
+.plan-menu.on{display:flex;transform:translateY(0)}
+.plan-menu-title{font-size:14px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;padding:4px 4px 8px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-menu-btn{padding:14px;background:var(--bg);border-radius:10px;border:0.5px solid var(--br);color:var(--tx);font-size:18px;cursor:pointer;text-align:center}
+.plan-menu-btn:active{opacity:.7}
+.plan-menu-btn.danger{color:var(--red,#e05252)}
+.plan-menu-btn.cancel{color:var(--tx3);margin-top:4px}
 .toast{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(10px);background:var(--sf2);border:0.5px solid var(--br2);border-radius:99px;padding:9px 18px;font-size:20px;color:var(--tx);z-index:400;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:14px;max-width:92vw}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.has-action{pointer-events:auto}
@@ -253,6 +268,13 @@ select.fi-sm option{background:var(--sf)}
 </style>
 </head>
 <body>
+<div class="plan-menu" id="plan-menu">
+  <div class="plan-menu-title" id="plan-menu-name"></div>
+  <div class="plan-menu-btn" onclick="planMenuRename()">Renommer</div>
+  <div class="plan-menu-btn" onclick="planMenuReload()">Recharger l'image</div>
+  <div class="plan-menu-btn danger" id="plan-menu-delete" onclick="planMenuDelete()">Supprimer ce plan</div>
+  <div class="plan-menu-btn cancel" onclick="closePlanMenu()">Annuler</div>
+</div>
 <div class="toast" id="toast"><span id="toast-msg"></span><button class="toast-action" id="toast-action" style="display:none">Annuler</button></div>
 <div id="ibanner"><p>Installer DiagTerrain ?</p><button class="ib-no" onclick="document.getElementById('ibanner').style.display='none'">Plus tard</button><button class="ib-yes" onclick="installApp()">Installer</button></div>
 <div class="ov" id="ov" onclick="closeSheet()"></div>
@@ -384,6 +406,7 @@ select.fi-sm option{background:var(--sf)}
     <button class="ib" onclick="goHome()" title="Accueil"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></button>
     <div style="flex:1"><div class="hdr-t" id="map-title">—</div><div class="hdr-s" id="map-ref">—</div></div>
   </div>
+  <div class="plan-strip" id="plan-strip" style="display:none"></div>
   <div class="map-wrap" id="map-wrap">
     <canvas id="plan-cvs"></canvas>
     <svg id="mklayer" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none"></svg>
@@ -510,7 +533,200 @@ function refreshHomeCard(){ renderAffairesList(); }
 // STATE
 let proj={name:'',ref:'',ing:'',date:''};
 let currentAffaireId=null;
+// Multi-plans (v2 schema). plans[] est la source de verite ; obs/planImg/counter sont
+// le "scratchpad" du plan actuellement edite (= plans[currentPlanIdx]), conserve pour
+// minimiser les changements dans le reste du code.
+let plans=[]; // [{name, planImg, obs, counter}]
+let currentPlanIdx=0;
 let obs=[], planImg=null, counter=0;
+
+// Synchronise le scratchpad vers plans[currentPlanIdx]
+function syncCurrentPlanFromActive(){
+  if(plans.length === 0){
+    plans = [{name:'Plan principal', obs:[], counter:0, planImg:null}];
+    currentPlanIdx = 0;
+  }
+  if(!plans[currentPlanIdx]) plans[currentPlanIdx] = {name:'Plan '+(currentPlanIdx+1), obs:[], counter:0, planImg:null};
+  plans[currentPlanIdx].obs = obs;
+  plans[currentPlanIdx].planImg = planImg;
+  plans[currentPlanIdx].counter = counter;
+}
+// Charge plans[idx] dans le scratchpad
+function loadPlanToActive(idx){
+  if(idx < 0 || idx >= plans.length){ obs=[]; planImg=null; counter=0; return; }
+  const p = plans[idx];
+  obs = Array.isArray(p.obs) ? p.obs : [];
+  planImg = p.planImg || null;
+  counter = p.counter || 0;
+}
+
+// Bascule sur un autre plan (sync l'actuel + charge le nouveau)
+function switchPlan(idx){
+  if(idx === currentPlanIdx) return;
+  if(idx < 0 || idx >= plans.length) return;
+  syncCurrentPlanFromActive();
+  currentPlanIdx = idx;
+  loadPlanToActive(idx);
+  _eventsReady = false;
+  const cvs = document.getElementById('plan-cvs');
+  if(planImg){
+    setTimeout(initMap, 30);
+  } else {
+    cvs.width = 0; cvs.height = 0;
+    cvs.getContext('2d').clearRect(0,0,1,1);
+  }
+  renderMk();
+  updateMapHint();
+  updatePlanSelector();
+  autosave().catch(()=>{});
+}
+
+// Ajoute un nouveau plan vide et bascule dessus, puis ouvre le selecteur de fichier
+function addNewPlan(){
+  syncCurrentPlanFromActive();
+  plans.push({name:'Plan '+(plans.length+1), obs:[], counter:0, planImg:null});
+  currentPlanIdx = plans.length - 1;
+  loadPlanToActive(currentPlanIdx);
+  const cvs = document.getElementById('plan-cvs');
+  cvs.width = 0; cvs.height = 0;
+  cvs.getContext('2d').clearRect(0,0,1,1);
+  renderMk();
+  updateMapHint();
+  updatePlanSelector();
+  toast('Chargez un plan pour cette nouvelle vue');
+  // Ouvre le selecteur de fichier (= meme input que sur l'ecran setup)
+  document.getElementById('plan-file').click();
+}
+
+// Renomme le plan idx
+function renamePlan(idx, newName){
+  if(idx < 0 || idx >= plans.length) return;
+  const name = (newName||'').trim();
+  plans[idx].name = name || ('Plan '+(idx+1));
+  updatePlanSelector();
+  autosave().catch(()=>{});
+}
+
+// Supprime le plan idx avec undo 5s
+function deletePlan(idx){
+  if(idx < 0 || idx >= plans.length) return;
+  if(plans.length <= 1){ toast('Un plan minimum requis'); return; }
+  syncCurrentPlanFromActive();
+  const removed = plans[idx];
+  const wasCurrent = (idx === currentPlanIdx);
+  const prevCurrentIdx = currentPlanIdx;
+  plans.splice(idx, 1);
+  // Ajuste currentPlanIdx
+  if(wasCurrent){
+    currentPlanIdx = Math.min(idx, plans.length - 1);
+    loadPlanToActive(currentPlanIdx);
+    _eventsReady = false;
+    if(planImg) setTimeout(initMap, 30);
+    else { const cvs=document.getElementById('plan-cvs'); cvs.width=0; cvs.height=0; }
+    renderMk(); updateMapHint();
+  } else if(idx < currentPlanIdx){
+    currentPlanIdx--;
+  }
+  updatePlanSelector();
+  autosave().catch(()=>{});
+  toastUndo('Plan supprimé', ()=>{
+    syncCurrentPlanFromActive();
+    plans.splice(idx, 0, removed);
+    if(wasCurrent){
+      currentPlanIdx = idx;
+      loadPlanToActive(idx);
+      _eventsReady = false;
+      if(planImg) setTimeout(initMap, 30);
+      renderMk(); updateMapHint();
+    } else {
+      currentPlanIdx = prevCurrentIdx;
+    }
+    updatePlanSelector();
+    autosave().catch(()=>{});
+  });
+}
+
+// Reconstruit la barre de chips des plans
+function updatePlanSelector(){
+  const strip = document.getElementById('plan-strip');
+  if(!strip) return;
+  if(!plans.length){ strip.style.display = 'none'; return; }
+  let html = '';
+  plans.forEach((p, i) => {
+    html += '<div class="plan-chip'+(i===currentPlanIdx?' on':'')+'" onclick="switchPlan('+i+')">'
+         +    '<span class="plan-chip-name">'+esc(p.name)+'</span>'
+         +    (i===currentPlanIdx ? '<span class="plan-chip-menu" onclick="event.stopPropagation(); openPlanMenu('+i+')">⋯</span>' : '')
+         +  '</div>';
+  });
+  html += '<button class="plan-add" onclick="addNewPlan()" title="Ajouter un plan">+</button>';
+  strip.innerHTML = html;
+  strip.style.display = 'flex';
+}
+
+// Menu d'actions pour un plan (renommer / supprimer)
+let _menuPlanIdx = -1;
+function openPlanMenu(idx){
+  _menuPlanIdx = idx;
+  const m = document.getElementById('plan-menu');
+  document.getElementById('plan-menu-name').textContent = plans[idx]?.name || '';
+  document.getElementById('plan-menu-delete').style.display = plans.length > 1 ? 'block' : 'none';
+  m.classList.add('on');
+  document.getElementById('ov').classList.add('on');
+  document.getElementById('ov').onclick = closePlanMenu;
+}
+function closePlanMenu(){
+  document.getElementById('plan-menu').classList.remove('on');
+  document.getElementById('ov').classList.remove('on');
+  document.getElementById('ov').onclick = null;
+  _menuPlanIdx = -1;
+}
+function planMenuRename(){
+  const idx = _menuPlanIdx; closePlanMenu();
+  if(idx < 0) return;
+  const current = plans[idx]?.name || '';
+  const newName = prompt('Nom du plan :', current);
+  if(newName !== null) renamePlan(idx, newName);
+}
+function planMenuReload(){
+  const idx = _menuPlanIdx; closePlanMenu();
+  if(idx < 0) return;
+  // Bascule sur le plan a recharger puis ouvre le selecteur
+  if(idx !== currentPlanIdx){
+    syncCurrentPlanFromActive();
+    currentPlanIdx = idx;
+    loadPlanToActive(idx);
+    updatePlanSelector();
+  }
+  document.getElementById('plan-file').click();
+}
+function planMenuDelete(){
+  const idx = _menuPlanIdx; closePlanMenu();
+  if(idx < 0) return;
+  deletePlan(idx);
+}
+
+// Helper appele apres chaque assignation de planImg (depuis handlePlan ou selecteurs).
+// Met a jour l'UI setup si on y est, et propage au plan courant si on est en mode map.
+function _planImageReady(fileName, pageInfo){
+  const upLabel = document.getElementById('up-label');
+  if(upLabel){
+    upLabel.innerHTML =
+      '<span style="color:var(--ac);font-family:var(--mo);font-size:12px">'
+      + (fileName||'plan') + (pageInfo ? ' — '+pageInfo : '')
+      + '</span><br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
+  }
+  chkSetup();
+  // Si on est dans une affaire ouverte sur l'ecran map, on commit pour le plan courant
+  const onMap = document.getElementById('scr-map') && document.getElementById('scr-map').classList.contains('on');
+  if(currentAffaireId && plans.length && onMap){
+    if(!plans[currentPlanIdx]) plans[currentPlanIdx] = {name:'Plan '+(currentPlanIdx+1), obs:[], counter:0, planImg:null};
+    plans[currentPlanIdx].planImg = planImg;
+    _eventsReady = false;
+    setTimeout(initMap, 30);
+    autosave().catch(()=>{});
+    toast('Plan chargé pour "'+(plans[currentPlanIdx].name||'cette vue')+'"');
+  }
+}
 let editId=null, pendPos=null, curPhotos=[];
 let moveMode=false, moveObsId=null;
 let _lastLongPress=0; // timestamp dernier appui long sur plan
@@ -930,34 +1146,52 @@ function saveAffairesList(list){
   localStorage.setItem(LS_LIST, JSON.stringify(list));
 }
 
-// Sauvegarder l'affaire courante
+// Sauvegarder l'affaire courante (schema v2 multi-plans)
 async function autosave(){
   if(!currentAffaireId) return;
+  // Toujours sync le scratchpad vers plans[currentPlanIdx] avant de persister
+  syncCurrentPlanFromActive();
   try{
-    // Données légères (sans planImg ni photos src)
-    const data = {proj, obs, savedAt: Date.now()};
+    // Donnees legeres (plans sans planImg, photos conservees)
+    const lightPlans = plans.map(p => ({name:p.name, obs:p.obs, counter:p.counter}));
+    const data = {version:2, proj, plans:lightPlans, currentPlanIdx, savedAt:Date.now()};
     localStorage.setItem(LS_PREFIX + currentAffaireId, JSON.stringify(data));
-    // Plan compressé séparé
-    if(planImg){
-      try{ localStorage.setItem(LS_PREFIX + currentAffaireId + '_plan', planImg); }
-      catch(e){
-        try{
-          const small = await compressImg(planImg, 1200, 0.7);
-          localStorage.setItem(LS_PREFIX + currentAffaireId + '_plan', small);
-        }catch(e2){ console.warn('Plan trop lourd pour localStorage'); }
+    // Images de plan (1 cle par plan)
+    for(let i = 0; i < plans.length; i++){
+      const k = LS_PREFIX + currentAffaireId + '_planimg_' + i;
+      const img = plans[i].planImg;
+      if(img){
+        try{ localStorage.setItem(k, img); }
+        catch(e){
+          try{
+            const small = await compressImg(img, 1200, 0.7);
+            localStorage.setItem(k, small);
+          }catch(e2){ console.warn('Plan '+i+' trop lourd pour localStorage'); }
+        }
+      } else {
+        localStorage.removeItem(k);
       }
     }
-    // Mettre à jour les métadonnées dans la liste
+    // Nettoyage des cles excedentaires (cas suppression de plan)
+    for(let i = plans.length; i < 20; i++){
+      localStorage.removeItem(LS_PREFIX + currentAffaireId + '_planimg_' + i);
+    }
+    // Nettoyage de la cle legacy apres migration
+    localStorage.removeItem(LS_PREFIX + currentAffaireId + '_plan');
+
+    // Metadonnees dans la liste d'affaires
     const list = getAffairesList();
     const idx = list.findIndex(a => a.id === currentAffaireId);
+    const totalObs = plans.reduce((s,p) => s + (p.obs||[]).length, 0);
     const meta = {
       id: currentAffaireId,
       name: proj.name || 'Sans nom',
       ref: proj.ref || '',
       ing: proj.ing || '',
-      obsCount: obs.length,
+      obsCount: totalObs,
+      planCount: plans.length,
       savedAt: Date.now(),
-      hasPlan: !!planImg
+      hasPlan: plans.some(p => !!p.planImg)
     };
     if(idx >= 0) list[idx] = meta;
     else list.unshift(meta);
@@ -965,10 +1199,13 @@ async function autosave(){
   }catch(e){
     // Quota — sauvegarde sans photos pour preserver les observations
     try{
-      const light = {proj, obs: obs.map(o=>({...o,photos:(o.photos||[]).map(p=>({src:''}))})), savedAt:Date.now(), noPhotos:true};
+      const stripped = plans.map(p => ({
+        name: p.name,
+        counter: p.counter,
+        obs: (p.obs||[]).map(o => ({...o, photos:(o.photos||[]).map(_=>({src:''}))}))
+      }));
+      const light = {version:2, proj, plans:stripped, currentPlanIdx, savedAt:Date.now(), noPhotos:true};
       localStorage.setItem(LS_PREFIX + currentAffaireId, JSON.stringify(light));
-      // Alerte explicite (1x par session) — l'utilisateur doit savoir que les photos
-      // ne survivront pas a un rechargement et qu'il faut exporter en JSON.
       if(!window._quotaWarned){
         window._quotaWarned = true;
         toast('Stockage plein - exportez en JSON avant de fermer');
@@ -977,54 +1214,98 @@ async function autosave(){
   }
 }
 
-// Ouvrir une affaire depuis la liste
+// Ouvrir une affaire depuis la liste (gere migration v1 -> v2)
 function openAffaire(id){
   try{
     const raw = localStorage.getItem(LS_PREFIX + id);
     if(!raw) return;
     const data = JSON.parse(raw);
     currentAffaireId = id;
-    proj = data.proj || {};
-    obs  = data.obs  || [];
-    counter = obs.reduce((m,o) => Math.max(m, o.id||0), 0);
-    planImg = localStorage.getItem(LS_PREFIX + id + '_plan') || null;
+    proj = data.proj || {name:'',ref:'',ing:'',date:''};
+
+    if(Array.isArray(data.plans)){
+      // Format v2 — multi-plans
+      plans = data.plans.map((p, i) => ({
+        name: (typeof p.name === 'string' && p.name) ? p.name : ('Plan '+(i+1)),
+        obs: Array.isArray(p.obs) ? p.obs : [],
+        counter: typeof p.counter === 'number' ? p.counter : 0,
+        planImg: localStorage.getItem(LS_PREFIX + id + '_planimg_' + i) || null
+      }));
+      currentPlanIdx = Math.min(Math.max(0, data.currentPlanIdx||0), plans.length - 1);
+      if(plans.length === 0){
+        plans = [{name:'Plan principal', obs:[], counter:0, planImg:null}];
+        currentPlanIdx = 0;
+      }
+    } else {
+      // Format v1 (legacy) — migration vers multi-plans (1 seul plan)
+      const oldObs = Array.isArray(data.obs) ? data.obs : [];
+      const oldPlan = localStorage.getItem(LS_PREFIX + id + '_plan');
+      plans = [{
+        name: 'Plan principal',
+        obs: oldObs,
+        counter: oldObs.reduce((m,o)=>Math.max(m, o.id||0), 0),
+        planImg: oldPlan || null
+      }];
+      currentPlanIdx = 0;
+      // La persistance dans le nouveau format se fera au prochain autosave
+    }
+
+    loadPlanToActive(currentPlanIdx);
     document.getElementById('map-title').textContent = proj.name || '';
     document.getElementById('map-ref').textContent   = proj.ref  || 'Sans référence';
     _eventsReady = false;
     showMap();
     if(planImg) setTimeout(initMap, 80);
     else toast('Plan non disponible — rechargez-le dans la mission');
-  }catch(e){ toast('Erreur chargement affaire'); }
+    updatePlanSelector();
+  }catch(e){
+    console.error('openAffaire error:', e);
+    toast('Erreur chargement affaire');
+  }
 }
 
-// Supprimer une affaire (avec undo 5s)
+// Supprimer une affaire (avec undo 5s) - gere multi-plans
 function deleteAffaire(id, e){
   e.stopPropagation();
-  // Sauvegarde des données avant suppression pour pouvoir restaurer
+  // Backup complet : entry principale + tous les plans (v1 et v2)
   const savedData = localStorage.getItem(LS_PREFIX + id);
-  const savedPlan = localStorage.getItem(LS_PREFIX + id + '_plan');
+  const savedLegacyPlan = localStorage.getItem(LS_PREFIX + id + '_plan');
+  const savedPlanImgs = {};
+  for(let i = 0; i < 30; i++){
+    const v = localStorage.getItem(LS_PREFIX + id + '_planimg_' + i);
+    if(v) savedPlanImgs[i] = v;
+  }
   const prevList  = getAffairesList();
   const meta      = prevList.find(a => a.id === id);
   if(!meta){ return; }
   const wasCurrent = (currentAffaireId === id);
-  const prevState  = wasCurrent ? {proj:{...proj}, obs:[...obs], planImg, counter, currentAffaireId} : null;
+  const prevState  = wasCurrent ? {
+    proj:{...proj}, obs:[...obs], planImg, counter, currentAffaireId,
+    plans:plans.map(p=>({...p})), currentPlanIdx
+  } : null;
 
   // Suppression effective
   localStorage.removeItem(LS_PREFIX + id);
-  localStorage.removeItem(LS_PREFIX + id + '_plan');
+  if(savedLegacyPlan) localStorage.removeItem(LS_PREFIX + id + '_plan');
+  Object.keys(savedPlanImgs).forEach(k => localStorage.removeItem(LS_PREFIX + id + '_planimg_' + k));
   saveAffairesList(prevList.filter(a => a.id !== id));
   if(wasCurrent){
-    currentAffaireId = null; proj = {name:'',ref:'',ing:'',date:''}; obs = []; planImg = null; counter = 0;
+    currentAffaireId = null;
+    proj = {name:'',ref:'',ing:'',date:''};
+    obs = []; planImg = null; counter = 0;
+    plans = []; currentPlanIdx = 0;
   }
   renderAffairesList();
 
   toastUndo('Affaire supprimée', ()=>{
     if(savedData) localStorage.setItem(LS_PREFIX + id, savedData);
-    if(savedPlan) localStorage.setItem(LS_PREFIX + id + '_plan', savedPlan);
+    if(savedLegacyPlan) localStorage.setItem(LS_PREFIX + id + '_plan', savedLegacyPlan);
+    Object.entries(savedPlanImgs).forEach(([k,v]) => localStorage.setItem(LS_PREFIX + id + '_planimg_' + k, v));
     saveAffairesList(prevList);
     if(prevState){
       currentAffaireId = prevState.currentAffaireId;
       proj = prevState.proj; obs = prevState.obs; planImg = prevState.planImg; counter = prevState.counter;
+      plans = prevState.plans; currentPlanIdx = prevState.currentPlanIdx;
     }
     renderAffairesList();
   });
@@ -1142,6 +1423,7 @@ function goHome(){refreshHomeCard();showScr('home');}
 function goSetup(){
   currentAffaireId = null;
   obs=[]; proj={name:'',ref:'',ing:'',date:new Date().toLocaleDateString('fr-FR')}; planImg=null; counter=0;
+  plans=[]; currentPlanIdx=0;
   document.getElementById('p-name').value='';
   document.getElementById('p-ref').value='';
   document.getElementById('p-ing').value='';
@@ -1211,10 +1493,7 @@ function showTiffSelector(ifds, rawBuffer, fileName){
         ctx2.putImageData(id2, 0, 0);
         planImg = full2.toDataURL('image/jpeg', 0.92);
         sel.style.display = 'none';
-        document.getElementById('up-label').innerHTML =
-          '<span style="color:var(--ac);font-family:var(--mo);font-size:12px">' + fileName + ' — p.' + (i+1) + '</span>' +
-          '<br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
-        chkSetup();
+        _planImageReady(fileName, 'p.'+(i+1));
       };
       pages.appendChild(btn);
     } catch(e) {
@@ -1265,8 +1544,7 @@ async function handlePlan(input){
   } else {
     planImg=await toDataURL(f);
   }
-  document.getElementById('up-label').innerHTML='<span style="color:var(--ac);font-family:var(--mo);font-size:12px">'+f.name+'</span><br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
-  chkSetup();
+  _planImageReady(f.name);
 }
 
 // Sélecteur de page PDF (pour PDF multipages)
@@ -1293,10 +1571,7 @@ async function showPdfSelector(pdf, fileName){
       const fc = document.createElement('canvas'); fc.width=fullVp.width; fc.height=fullVp.height;
       await page.render({canvasContext:fc.getContext('2d'),viewport:fullVp}).promise;
       planImg = fc.toDataURL('image/jpeg',.92);
-      document.getElementById('up-label').innerHTML =
-        '<span style="color:var(--ac);font-family:var(--mo);font-size:12px">' + fileName + ' — p.' + pageNum + '</span>' +
-        '<br><span style="font-size:11px;color:var(--grn)">Plan chargé ✓</span>';
-      chkSetup();
+      _planImageReady(fileName, 'p.'+pageNum);
     };
     pages.appendChild(btn);
   }
@@ -1305,11 +1580,17 @@ async function showPdfSelector(pdf, fileName){
 async function startMission(){
   proj={name:document.getElementById('p-name').value.trim(),ref:document.getElementById('p-ref').value.trim(),ing:document.getElementById('p-ing').value.trim(),date:new Date().toLocaleDateString('fr-FR')};
   if(!currentAffaireId) currentAffaireId = genAffaireId();
+  // Premiere mission : enveloppe le plan charge dans plans[0]
+  if(plans.length === 0){
+    plans = [{name:'Plan principal', obs:obs, counter:counter, planImg:planImg}];
+    currentPlanIdx = 0;
+  }
   document.getElementById('map-title').textContent=proj.name;
   document.getElementById('map-ref').textContent=proj.ref||'Sans référence';
   _eventsReady=false;
   try{ await autosave(); }catch(e){}
   showMap(); setTimeout(initMap,80);
+  updatePlanSelector();
 }
 
 // MAP INIT
@@ -1349,7 +1630,18 @@ function renderExp(){
 
 }
 
-function expJSON(){dl(new Blob([JSON.stringify({proj,obs,planImg},null,2)],{type:'application/json'}),(proj.ref||'mission')+'_diagterrain.json');toast('Sauvegarde exportée');}
+function expJSON(){
+  syncCurrentPlanFromActive();
+  const payload = {
+    version: 2,
+    proj,
+    plans: plans.map(p => ({name:p.name, obs:p.obs, counter:p.counter, planImg:p.planImg})),
+    currentPlanIdx
+  };
+  dl(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}),
+     (proj.ref||'mission')+'_diagterrain.json');
+  toast('Sauvegarde exportée');
+}
 
 // ── PLAN ANNOTÉ EN WORD ──────────────────────────────────────────────
 async function expPlanWord(){
@@ -1644,7 +1936,12 @@ async function expFichesWord(){
 
 
 async function expFiches(){
-  if(!obs.length){ toast('Aucune observation'); return; }
+  syncCurrentPlanFromActive();
+  // Aggrege observations de tous les plans (incluant ref au plan d'origine)
+  const allFiches = [];
+  plans.forEach(p => (p.obs||[]).forEach(o => allFiches.push({o, plan:p})));
+  if(!allFiches.length){ toast('Aucune observation'); return; }
+  const multiPlan = plans.length > 1;
   toast('Génération des fiches...');
   try{
     const { jsPDF } = window.jspdf;
@@ -1694,11 +1991,12 @@ async function expFiches(){
       return y+9;
     };
 
-    const total = obs.length;
+    const total = allFiches.length;
     let firstPage = true;
 
-    for(let i=0; i<obs.length; i++){
-      const o = obs[i];
+    for(let i=0; i<allFiches.length; i++){
+      const o = allFiches[i].o;
+      const fichePlan = allFiches[i].plan;
       const lbl = o.pinLabel || String(o.id).padStart(2,'0');
       const col = colRgb(o.type);
 
@@ -1715,6 +2013,12 @@ async function expFiches(){
       const titreRef = (proj.ref||'') + ' – ' + typeLabel + ' N°' + lbl;
       const titreLoc = o.loc ? ' – ' + o.loc : '';
       y = drawBandeau(y, titreRef + titreLoc, ORANGE, [255,255,255]);
+      // Sous-bandeau "Plan : X" si multi-plans
+      if(multiPlan){
+        doc.setFontSize(7.5); doc.setTextColor(120,120,120); doc.setFont('helvetica','italic');
+        doc.text('Plan : '+(fichePlan.name||''), marg, y+4);
+        y += 6;
+      }
       y += 4;
 
       // ── Photo principale (grande, pleine largeur) ──
@@ -1818,13 +2122,13 @@ async function expFiches(){
       }
 
       // ── Localisation sur plan (miniature) ──
-      if(planImg && o.pos){
+      if(fichePlan.planImg && o.pos){
         const planMiniH = Math.min(45, PB-y-18);
         if(planMiniH > 20 && y + planMiniH < PB-14){
           // Créer miniature du plan avec ce pin mis en évidence
           const c2 = document.createElement('canvas');
           const baseImg2 = new Image();
-          baseImg2.src = planImg;
+          baseImg2.src = fichePlan.planImg;
           await new Promise(r=>{baseImg2.onload=r;baseImg2.onerror=r;});
           c2.width=baseImg2.width; c2.height=baseImg2.height;
           const ctx2=c2.getContext('2d');
@@ -1856,7 +2160,7 @@ async function expFiches(){
     }
 
     doc.save((proj.ref||'mission')+'_fiches.pdf');
-    toast(obs.length+' fiche(s) PDF générée(s)');
+    toast(allFiches.length+' fiche(s) PDF générée(s)');
   }catch(err){ console.error('Fiches error:', err); toast('Erreur : '+err.message); }
 }
 
@@ -1868,21 +2172,8 @@ async function expFiches(){
 const _VALID_TYPES = new Set(['fissure','visuel','sondage','autre']);
 function _safeStr(v, max){ return typeof v === 'string' ? v.slice(0, max||500) : ''; }
 function _safeImg(v){ return (typeof v === 'string' && /^data:image\//i.test(v)) ? v : ''; }
-function sanitizeImported(data){
-  if(!data || typeof data !== 'object') throw new Error('Format JSON invalide');
-  const p = (data.proj && typeof data.proj === 'object') ? data.proj : {};
-  const out = {
-    proj: {
-      name: _safeStr(p.name, 200),
-      ref:  _safeStr(p.ref, 100),
-      ing:  _safeStr(p.ing, 100),
-      date: _safeStr(p.date, 40)
-    },
-    planImg: _safeImg(data.planImg) || null,
-    obs: []
-  };
-  const rawObs = Array.isArray(data.obs) ? data.obs : [];
-  out.obs = rawObs.map(o => {
+function _sanitizeObs(rawObs){
+  return (Array.isArray(rawObs) ? rawObs : []).map(o => {
     if(!o || typeof o !== 'object') return null;
     const safe = {
       id: typeof o.id === 'number' && isFinite(o.id) ? o.id : 0,
@@ -1914,6 +2205,44 @@ function sanitizeImported(data){
     }
     return safe;
   }).filter(Boolean);
+}
+
+function sanitizeImported(data){
+  if(!data || typeof data !== 'object') throw new Error('Format JSON invalide');
+  const p = (data.proj && typeof data.proj === 'object') ? data.proj : {};
+  const out = {
+    proj: {
+      name: _safeStr(p.name, 200),
+      ref:  _safeStr(p.ref, 100),
+      ing:  _safeStr(p.ing, 100),
+      date: _safeStr(p.date, 40)
+    },
+    plans: [],
+    currentPlanIdx: 0
+  };
+  if(Array.isArray(data.plans)){
+    // Format v2 multi-plans
+    out.plans = data.plans.map((pl, i) => ({
+      name: _safeStr(pl && pl.name, 80) || ('Plan '+(i+1)),
+      obs: _sanitizeObs(pl && pl.obs),
+      counter: (pl && typeof pl.counter === 'number') ? pl.counter : 0,
+      planImg: _safeImg(pl && pl.planImg) || null
+    }));
+    if(typeof data.currentPlanIdx === 'number') out.currentPlanIdx = data.currentPlanIdx;
+  } else {
+    // Format v1 legacy : enveloppe dans plans[0]
+    const oldObs = _sanitizeObs(data.obs);
+    out.plans = [{
+      name: 'Plan principal',
+      obs: oldObs,
+      counter: oldObs.reduce((m,o)=>Math.max(m, o.id||0), 0),
+      planImg: _safeImg(data.planImg) || null
+    }];
+  }
+  if(out.plans.length === 0){
+    out.plans = [{name:'Plan principal', obs:[], counter:0, planImg:null}];
+  }
+  out.currentPlanIdx = Math.min(Math.max(0, out.currentPlanIdx), out.plans.length - 1);
   return out;
 }
 
@@ -1929,14 +2258,19 @@ async function loadJSON(input){
   try { clean = sanitizeImported(data); }
   catch(e){ toast('Sauvegarde non reconnue : '+e.message); input.value=''; return; }
   proj = clean.proj;
-  obs = clean.obs;
-  planImg = clean.planImg;
-  counter = obs.reduce((m,o)=>Math.max(m, o.id||0), 0);
+  plans = clean.plans;
+  currentPlanIdx = clean.currentPlanIdx;
+  loadPlanToActive(currentPlanIdx);
+  if(!currentAffaireId) currentAffaireId = genAffaireId();
   document.getElementById('map-title').textContent = proj.name||'';
   document.getElementById('map-ref').textContent   = proj.ref||'';
+  _eventsReady = false;
   try{ await autosave(); }catch(e){}
-  showMap(); setTimeout(initMap, 80);
-  toast('Mission chargée — '+obs.length+' observations');
+  showMap();
+  if(planImg) setTimeout(initMap, 80);
+  updatePlanSelector();
+  const totalObs = plans.reduce((s,p) => s + (p.obs||[]).length, 0);
+  toast('Mission chargée — '+totalObs+' observations · '+plans.length+' plan'+(plans.length>1?'s':''));
   input.value = '';
 }
 
@@ -2121,7 +2455,10 @@ async function downloadAllPhotos(){
 }
 
 async function expPDF(){
-  if(!planImg){ toast('Chargez un plan d’abord'); return; }
+  syncCurrentPlanFromActive();
+  // Plans avec image (ceux sans image n'ont rien a annoter)
+  const printable = plans.filter(p => p.planImg);
+  if(printable.length === 0){ toast('Aucun plan disponible'); return; }
   toast('Génération plan PDF...');
   try{
     const { jsPDF } = window.jspdf;
@@ -2137,24 +2474,8 @@ async function expPDF(){
       keywords: 'diagnostic, structure, BTP, plan'
     });
 
-    // Fond sombre
-    doc.setFillColor(...DARK); doc.rect(0,0,LW,LH,'F');
-
-    // En-tête
-    doc.setFillColor(...SURF); doc.rect(0,0,LW,18,'F');
-    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4); doc.line(0,18,LW,18);
-    try{ doc.addImage(LOGO_DARK,'JPEG', LW-55, 1, 48, 15); }catch(e){}
-    doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
-    doc.text((proj.name||'').substring(0,60), marg, 8);
-    doc.text('Ref. '+(proj.ref||'—')+'  |  '+(proj.ing||'')+'  |  '+(proj.date||''), marg, 14);
-
-    // Bandeau titre
-    doc.setFillColor(...ORANGE); doc.rect(0,18,LW,10,'F');
-    doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
-    doc.text('PLAN ANNOTÉ DES OBSERVATIONS', marg, 25);
-
-    // Plan annoté avec pins
-    let annotated = await new Promise(resolve => {
+    // Rend un plan annote sous forme de dataURL JPEG (couches : image + pins)
+    const annotatePlan = (img, planObs) => new Promise(resolve => {
       const baseImg = new Image();
       baseImg.onload = () => {
         const c = document.createElement('canvas');
@@ -2164,7 +2485,7 @@ async function expPDF(){
         const ps = Math.max(c.width, c.height) / 800;
         const pinR = Math.round(16 * ps);
         const fontSize = Math.round(11 * ps);
-        obs.forEach(o => {
+        (planObs||[]).forEach(o => {
           if(!o.pos) return;
           const col = o.type==='fissure'?[224,82,82]:o.type==='visuel'?[74,158,255]:o.type==='sondage'?[76,175,125]:[154,151,160];
           const lbl = o.pinLabel||String(o.id).padStart(2,'0');
@@ -2182,29 +2503,58 @@ async function expPDF(){
         });
         resolve(c.toDataURL('image/jpeg',0.92));
       };
-      baseImg.onerror = () => resolve(planImg);
-      baseImg.src = planImg;
+      baseImg.onerror = () => resolve(img);
+      baseImg.src = img;
     });
 
-    const planAreaY=28, planAreaH=LH-planAreaY-FOOT-4, planAreaW=LW-2*marg;
-    const tmpImg=new Image(); tmpImg.src=annotated;
-    await new Promise(r=>{tmpImg.onload=r;tmpImg.onerror=r;});
-    const iW=tmpImg.width||1, iH=tmpImg.height||1;
-    const scPlan=Math.min(planAreaW/iW, planAreaH/iH);
-    const dW=iW*scPlan, dH=iH*scPlan;
-    const dX=marg+(planAreaW-dW)/2, dY=planAreaY+(planAreaH-dH)/2;
-    try{ doc.addImage(annotated,'JPEG',dX,dY,dW,dH); }catch(e){}
+    for(let pi = 0; pi < printable.length; pi++){
+      const plan = printable[pi];
+      if(pi > 0) doc.addPage();
 
-    // Pied de page + légende
-    const legY=LH-FOOT+1;
-    doc.setFillColor(...SURF); doc.rect(0,LH-FOOT,LW,FOOT,'F');
-    doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3); doc.line(0,LH-FOOT,LW,LH-FOOT);
-    try{ doc.addImage(LOGO_DARK,'JPEG', marg, LH-FOOT+0.5, 26, 9); }catch(e){}
-    doc.setFontSize(6); doc.setTextColor(...GRAY);
-    doc.setFillColor(224,82,82); doc.rect(marg+30,legY+2,3,3,'F'); doc.text('Fissuration',marg+34,legY+5);
-    doc.setFillColor(74,158,255); doc.rect(marg+56,legY+2,3,3,'F'); doc.text('Visuel',marg+60,legY+5);
-    doc.setFillColor(76,175,125); doc.rect(marg+74,legY+2,3,3,'F'); doc.text('Sondage',marg+78,legY+5);
-    doc.setFillColor(154,151,160); doc.rect(marg+96,legY+2,3,3,'F'); doc.text('Autre',marg+100,legY+5);
+      // Fond sombre
+      doc.setFillColor(...DARK); doc.rect(0,0,LW,LH,'F');
+
+      // En-tete
+      doc.setFillColor(...SURF); doc.rect(0,0,LW,18,'F');
+      doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4); doc.line(0,18,LW,18);
+      try{ doc.addImage(LOGO_DARK,'JPEG', LW-55, 1, 48, 15); }catch(e){}
+      doc.setFontSize(7.5); doc.setTextColor(...GRAY); doc.setFont('helvetica','normal');
+      doc.text((proj.name||'').substring(0,60), marg, 8);
+      doc.text('Ref. '+(proj.ref||'—')+'  |  '+(proj.ing||'')+'  |  '+(proj.date||''), marg, 14);
+
+      // Bandeau titre (nom du plan inclus si >1)
+      doc.setFillColor(...ORANGE); doc.rect(0,18,LW,10,'F');
+      doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+      const title = printable.length > 1
+        ? ('PLAN ANNOTÉ — '+plan.name.toUpperCase())
+        : 'PLAN ANNOTÉ DES OBSERVATIONS';
+      doc.text(title, marg, 25);
+
+      // Plan annote
+      const annotated = await annotatePlan(plan.planImg, plan.obs);
+      const planAreaY=28, planAreaH=LH-planAreaY-FOOT-4, planAreaW=LW-2*marg;
+      const tmpImg=new Image(); tmpImg.src=annotated;
+      await new Promise(r=>{tmpImg.onload=r;tmpImg.onerror=r;});
+      const iW=tmpImg.width||1, iH=tmpImg.height||1;
+      const scPlan=Math.min(planAreaW/iW, planAreaH/iH);
+      const dW=iW*scPlan, dH=iH*scPlan;
+      const dX=marg+(planAreaW-dW)/2, dY=planAreaY+(planAreaH-dH)/2;
+      try{ doc.addImage(annotated,'JPEG',dX,dY,dW,dH); }catch(e){}
+
+      // Pied de page + legende + pagination
+      const legY=LH-FOOT+1;
+      doc.setFillColor(...SURF); doc.rect(0,LH-FOOT,LW,FOOT,'F');
+      doc.setDrawColor(...ORANGE); doc.setLineWidth(0.3); doc.line(0,LH-FOOT,LW,LH-FOOT);
+      try{ doc.addImage(LOGO_DARK,'JPEG', marg, LH-FOOT+0.5, 26, 9); }catch(e){}
+      doc.setFontSize(6); doc.setTextColor(...GRAY);
+      doc.setFillColor(224,82,82); doc.rect(marg+30,legY+2,3,3,'F'); doc.text('Fissuration',marg+34,legY+5);
+      doc.setFillColor(74,158,255); doc.rect(marg+56,legY+2,3,3,'F'); doc.text('Visuel',marg+60,legY+5);
+      doc.setFillColor(76,175,125); doc.rect(marg+74,legY+2,3,3,'F'); doc.text('Sondage',marg+78,legY+5);
+      doc.setFillColor(154,151,160); doc.rect(marg+96,legY+2,3,3,'F'); doc.text('Autre',marg+100,legY+5);
+      if(printable.length > 1){
+        doc.text('Page '+(pi+1)+'/'+printable.length, LW-marg, legY+5, {align:'right'});
+      }
+    }
 
     doc.save((proj.ref||'mission')+'_plan.pdf');
     toast('Plan PDF généré');
