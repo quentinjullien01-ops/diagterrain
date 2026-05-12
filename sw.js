@@ -1,4 +1,4 @@
-const CACHE = 'diagterrain-v41';
+const CACHE = 'diagterrain-v42';
 const ASSETS = [
   '/diagterrain/',
   '/diagterrain/index.html',
