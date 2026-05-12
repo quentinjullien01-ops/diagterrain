@@ -816,7 +816,8 @@ function C(){ return document.getElementById('plan-cvs'); }
 
 function applyT(){
   C().style.transform=`translate(${px}px,${py}px) scale(${sc})`;
-  renderMk();
+  // Pendant pan/zoom : MAJ legere des transforms (pas de rebuild SVG)
+  updatePinTransforms();
 }
 
 function fitMap(){
@@ -936,6 +937,27 @@ function renderMk(){
   updateMapHint();
 }
 
+// Mise a jour LEGERE des positions des pins (sans re-creer le SVG). Appelee pendant
+// le pan/zoom. Avant : applyT lancait renderMk a chaque event pointer, recreant
+// 5+ elements SVG par pin -> freeze sur Android entry-level avec 30+ pins.
+function updatePinTransforms(){
+  const svg = document.getElementById('mklayer');
+  if(!svg) return;
+  const pins = svg.querySelectorAll('g[data-obs-id]');
+  // Lookup obs par id pour eviter find() en boucle (O(1) avec Map)
+  const byId = new Map();
+  for(const o of obs) if(o.pos) byId.set(o.id, o);
+  for(const g of pins){
+    const id = +g.getAttribute('data-obs-id');
+    const o = byId.get(id);
+    if(o){
+      const sx = o.pos.x*sc + px;
+      const sy = o.pos.y*sc + py;
+      g.setAttribute('transform', `translate(${sx},${sy})`);
+    }
+  }
+}
+
 const NS='http://www.w3.org/2000/svg';
 function el(tag,attrs){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));return e;}
 
@@ -981,7 +1003,7 @@ function mkObs(svg,o){
   const R=14; // rayon sphère
   const CY=-R-10; // centre Y de la sphère (au dessus du point d'ancrage)
 
-  const g=el('g',{transform:`translate(${sx},${sy})`,cursor:'pointer','pointer-events':'all'});
+  const g=el('g',{transform:`translate(${sx},${sy})`,cursor:'pointer','pointer-events':'all','data-obs-id':String(o.id)});
 
   // ── Pointe métallique ──
   // Gradient simulé avec deux paths côte à côte
@@ -1801,8 +1823,15 @@ function renderAnnotatedPlan(imgDataUrl, planObs){
   return new Promise(resolve => {
     const bi = new Image();
     bi.onload = () => {
-      const c = document.createElement('canvas'); c.width = bi.width; c.height = bi.height;
-      const ctx = c.getContext('2d'); ctx.drawImage(bi, 0, 0);
+      // Cap de taille : un PDF rendu a scale 2.5 peut donner 6000x4000 = 24 Mp.
+      // toDataURL d'un canvas aussi grand peut OOM sur mobile. On limite a 3000px
+      // sur le grand cote. Les coords des pins (o.pos.x/y) sont en pixels image
+      // d'origine et doivent etre ramenees a la nouvelle echelle.
+      const MAX_DIM = 3000;
+      const srcW = bi.width, srcH = bi.height;
+      const k = Math.max(srcW, srcH) > MAX_DIM ? (MAX_DIM / Math.max(srcW, srcH)) : 1;
+      const c = document.createElement('canvas'); c.width = Math.round(srcW*k); c.height = Math.round(srcH*k);
+      const ctx = c.getContext('2d'); ctx.drawImage(bi, 0, 0, c.width, c.height);
       const ps = Math.max(c.width, c.height) / 800;
       const pinR = Math.round(16 * ps);
       const fontSize = Math.round(11 * ps);
@@ -1810,7 +1839,7 @@ function renderAnnotatedPlan(imgDataUrl, planObs){
         if(!o.pos) return;
         const col = o.type==='fissure'?[224,82,82]:o.type==='visuel'?[74,158,255]:o.type==='sondage'?[76,175,125]:[154,151,160];
         const lbl = o.pinLabel || String(o.id).padStart(2,'0');
-        const x = o.pos.x, y = o.pos.y, cy = y - pinR*1.5;
+        const x = o.pos.x*k, y = o.pos.y*k, cy = y - pinR*1.5;
         // Ombre au sol
         ctx.beginPath(); ctx.ellipse(x+1,y+3,4*ps,1.5*ps,0,0,Math.PI*2); ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fill();
         // Pointe du pin
@@ -2190,6 +2219,16 @@ async function expFiches(){
 
     const total = allFiches.length;
     let firstPage = true;
+    // Cache des images de plan deja chargees, par dataURL. Une affaire de 50 obs sur
+    // un seul plan chargeait 50 fois la meme image avant cette opt.
+    const planImgCache = new Map();
+    async function getPlanImg(dataUrl){
+      if(planImgCache.has(dataUrl)) return planImgCache.get(dataUrl);
+      const im = new Image();
+      await new Promise(res => { im.onload = res; im.onerror = res; im.src = dataUrl; });
+      planImgCache.set(dataUrl, im);
+      return im;
+    }
 
     for(let i=0; i<allFiches.length; i++){
       const o = allFiches[i].o;
@@ -2323,18 +2362,20 @@ async function expFiches(){
       if(fichePlan.planImg && o.pos){
         const planMiniH = Math.min(45, PB-y-18);
         if(planMiniH > 20 && y + planMiniH < PB-14){
-          // Créer miniature du plan avec ce pin mis en évidence
+          // Créer miniature du plan avec ce pin mis en évidence (image cachee).
+          // Cap a 1200px pour limiter la memoire (la mini PDF fait ~60mm de large).
           const c2 = document.createElement('canvas');
-          const baseImg2 = new Image();
-          baseImg2.src = fichePlan.planImg;
-          await new Promise(r=>{baseImg2.onload=r;baseImg2.onerror=r;});
-          c2.width=baseImg2.width; c2.height=baseImg2.height;
-          const ctx2=c2.getContext('2d');
-          ctx2.drawImage(baseImg2,0,0);
+          const baseImg2 = await getPlanImg(fichePlan.planImg);
+          const MAX_MINI = 1200;
+          const sw = baseImg2.width, sh = baseImg2.height;
+          const k = Math.max(sw, sh) > MAX_MINI ? (MAX_MINI / Math.max(sw, sh)) : 1;
+          c2.width = Math.round(sw*k); c2.height = Math.round(sh*k);
+          const ctx2 = c2.getContext('2d');
+          ctx2.drawImage(baseImg2, 0, 0, c2.width, c2.height);
           // Dessiner le pin de cette obs en surbrillance
           const ps=Math.max(c2.width,c2.height)/800;
           const pr=Math.round(20*ps);
-          const x2=o.pos.x, y2=o.pos.y;
+          const x2=o.pos.x*k, y2=o.pos.y*k;
           // Halo
           ctx2.beginPath(); ctx2.arc(x2,y2-pr*1.5,pr*1.8,0,Math.PI*2);
           ctx2.fillStyle='rgba(240,165,0,0.25)'; ctx2.fill();

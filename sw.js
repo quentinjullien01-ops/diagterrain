@@ -1,4 +1,4 @@
-const CACHE = 'diagterrain-v46';
+const CACHE = 'diagterrain-v47';
 // Assets servis depuis le meme origin (toujours preserves au cache)
 const ASSETS = [
   '/diagterrain/',
