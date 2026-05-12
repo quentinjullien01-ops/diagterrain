@@ -893,7 +893,14 @@ function renderPhotoRow(photos){
 }
 
 async function addPhotos(input){
-  for(const f of input.files){ curPhotos.push({src:await toDataURL(f),pos:null}); }
+  for(const f of input.files){
+    const raw = await toDataURL(f);
+    let src = raw;
+    // Compresse les photos (1600px / Q=0.82) pour eviter la saturation localStorage.
+    // Une photo iPhone HD (~4 Mo en base64) passe a ~300 Ko, soit ~10x plus de capacite.
+    try{ src = await compressImg(raw, 1600, 0.82); }catch(_){ /* fallback: photo brute */ }
+    curPhotos.push({src, pos:null});
+  }
   renderPhotoRow(curPhotos); input.value='';
 }
 
@@ -947,10 +954,16 @@ async function autosave(){
     else list.unshift(meta);
     saveAffairesList(list);
   }catch(e){
-    // Quota — sauvegarde sans photos
+    // Quota — sauvegarde sans photos pour preserver les observations
     try{
       const light = {proj, obs: obs.map(o=>({...o,photos:(o.photos||[]).map(p=>({src:''}))})), savedAt:Date.now(), noPhotos:true};
       localStorage.setItem(LS_PREFIX + currentAffaireId, JSON.stringify(light));
+      // Alerte explicite (1x par session) — l'utilisateur doit savoir que les photos
+      // ne survivront pas a un rechargement et qu'il faut exporter en JSON.
+      if(!window._quotaWarned){
+        window._quotaWarned = true;
+        toast('Stockage plein - exportez en JSON avant de fermer');
+      }
     }catch(e2){}
   }
 }
