@@ -1,17 +1,30 @@
-const CACHE = 'diagterrain-v45';
+const CACHE = 'diagterrain-v46';
+// Assets servis depuis le meme origin (toujours preserves au cache)
 const ASSETS = [
   '/diagterrain/',
   '/diagterrain/index.html',
 ];
+// CDN externes : precaches a l'install pour que la 1ere mission hors-ligne
+// puisse generer des exports PDF/Word/TIFF. Sans ca, le 1er lancement
+// offline echoue (les scripts ne sont pas dispos).
+const CDN_ASSETS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js',
+];
 
-// Installation — mise en cache minimale (pas les CDN, trop lourds)
+// Installation : precache assets + CDN. cache.add() utilise CORS standard, ce qui
+// preserve la possibilite de validation SRI cote client (les reponses opaques de
+// 'no-cors' rendraient les hashs SRI invalides). cdnjs et jsdelivr supportent CORS.
 self.addEventListener('install', e => {
-  // skipWaiting immédiat — pas d'attente de fermeture des onglets
   self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(cache =>
-      Promise.allSettled(ASSETS.map(url => cache.add(url).catch(() => {})))
-    )
+    caches.open(CACHE).then(async cache => {
+      await Promise.allSettled(ASSETS.map(url => cache.add(url).catch(() => {})));
+      await Promise.allSettled(CDN_ASSETS.map(url => cache.add(url).catch(() => {})));
+    })
   );
 });
 
