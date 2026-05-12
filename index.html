@@ -629,12 +629,21 @@ function setupMapEvents(){
 }
 
 // MARKERS via SVG
+function updateMapHint(){
+  // Cache le hint "Appui long pour ajouter" des qu'une observation existe
+  // (visible en mode deplacement uniquement quand obs vide).
+  const h = document.getElementById('map-hint');
+  if(!h) return;
+  h.style.opacity = (obs.length === 0 && !moveMode) ? '1' : '0';
+}
+
 function renderMk(){
   const svg=document.getElementById('mklayer');
   svg.innerHTML='';
   obs.forEach(o=>{
     if(o.pos) mkObs(svg,o);
   });
+  updateMapHint();
 }
 
 const NS='http://www.w3.org/2000/svg';
@@ -648,13 +657,13 @@ function enterMoveMode(obsId){
   const lbl = o.pinLabel || String(o.id).padStart(2,'0');
   document.getElementById('move-bar-txt').textContent = 'Déplacer OBS-'+String(obsId).padStart(3,'0')+' ('+lbl+') — appuyer pour repositionner';
   document.getElementById('move-bar').style.display='flex';
-  document.getElementById('map-hint').style.opacity='0';
+  updateMapHint();
 }
 
 function cancelMove(){
   moveMode=false; moveObsId=null;
   document.getElementById('move-bar').style.display='none';
-  document.getElementById('map-hint').style.opacity='1';
+  updateMapHint();
 }
 
 function confirmMove(pos){
@@ -1644,6 +1653,13 @@ async function expFiches(){
     const colRgb = t => t==='fissure'?[224,82,82]:t==='visuel'?[74,158,255]:t==='sondage'?[76,175,125]:[154,151,160];
 
     const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+    doc.setProperties({
+      title: 'Fiches d\'observations — '+(proj.name||'Mission'),
+      subject: 'Diagnostic structurel — '+(proj.ref||'sans reference'),
+      author: proj.ing || 'BTP Ingenierie',
+      creator: 'DiagTerrain',
+      keywords: 'diagnostic, structure, BTP, fissure, expertise'
+    });
     const TW = PA - 2*marg; // largeur utile
 
     // ── Fonctions helpers ──
@@ -1846,16 +1862,82 @@ async function expFiches(){
 
 
 // JSON IMPORT
+// Valide et nettoie les donnees d'un fichier JSON importe. Refuse toute valeur
+// qui n'est pas du type attendu, et n'accepte comme src de photo / planImg que
+// les data URLs d'image (bloque javascript:, http: ou code malveillant inline).
+const _VALID_TYPES = new Set(['fissure','visuel','sondage','autre']);
+function _safeStr(v, max){ return typeof v === 'string' ? v.slice(0, max||500) : ''; }
+function _safeImg(v){ return (typeof v === 'string' && /^data:image\//i.test(v)) ? v : ''; }
+function sanitizeImported(data){
+  if(!data || typeof data !== 'object') throw new Error('Format JSON invalide');
+  const p = (data.proj && typeof data.proj === 'object') ? data.proj : {};
+  const out = {
+    proj: {
+      name: _safeStr(p.name, 200),
+      ref:  _safeStr(p.ref, 100),
+      ing:  _safeStr(p.ing, 100),
+      date: _safeStr(p.date, 40)
+    },
+    planImg: _safeImg(data.planImg) || null,
+    obs: []
+  };
+  const rawObs = Array.isArray(data.obs) ? data.obs : [];
+  out.obs = rawObs.map(o => {
+    if(!o || typeof o !== 'object') return null;
+    const safe = {
+      id: typeof o.id === 'number' && isFinite(o.id) ? o.id : 0,
+      type: _VALID_TYPES.has(o.type) ? o.type : 'autre',
+      pos: (o.pos && typeof o.pos === 'object' && typeof o.pos.x === 'number' && typeof o.pos.y === 'number')
+            ? {x: o.pos.x, y: o.pos.y} : null,
+      pinLabel: _safeStr(o.pinLabel, 16),
+      text:     _safeStr(o.text, 4000),
+      loc:      _safeStr(o.loc, 500),
+      date:     _safeStr(o.date, 40),
+      photos: (Array.isArray(o.photos) ? o.photos : [])
+        .map(ph => ({src: _safeImg(ph && ph.src)}))
+        .filter(ph => ph.src)
+    };
+    if(o.fissure && typeof o.fissure === 'object'){
+      safe.fissure = {
+        larg: _safeStr(o.fissure.larg, 20),
+        long: _safeStr(o.fissure.long, 20),
+        ori:  _safeStr(o.fissure.ori, 40),
+        act:  _safeStr(o.fissure.act, 40)
+      };
+    }
+    if(o.sondage && typeof o.sondage === 'object'){
+      safe.sondage = {
+        stype: _safeStr(o.sondage.stype, 40),
+        dim:   _safeStr(o.sondage.dim, 40),
+        obs:   _safeStr(o.sondage.obs, 2000)
+      };
+    }
+    return safe;
+  }).filter(Boolean);
+  return out;
+}
+
 async function loadJSON(input){
-  const f=input.files[0]; if(!f)return;
-  const data=JSON.parse(await f.text());
-  proj=data.proj||{}; obs=data.obs||[]; planImg=data.planImg||null;
-  counter=obs.reduce((m,o)=>Math.max(m,o.id||0),0);
-  document.getElementById('map-title').textContent=proj.name||'';
-  document.getElementById('map-ref').textContent=proj.ref||'';
+  const f = input.files[0]; if(!f){ return; }
+  let raw;
+  try { raw = await f.text(); }
+  catch(e){ toast('Lecture du fichier impossible'); input.value=''; return; }
+  let data;
+  try { data = JSON.parse(raw); }
+  catch(e){ toast('Fichier JSON invalide'); input.value=''; return; }
+  let clean;
+  try { clean = sanitizeImported(data); }
+  catch(e){ toast('Sauvegarde non reconnue : '+e.message); input.value=''; return; }
+  proj = clean.proj;
+  obs = clean.obs;
+  planImg = clean.planImg;
+  counter = obs.reduce((m,o)=>Math.max(m, o.id||0), 0);
+  document.getElementById('map-title').textContent = proj.name||'';
+  document.getElementById('map-ref').textContent   = proj.ref||'';
   try{ await autosave(); }catch(e){}
-  showMap(); setTimeout(initMap,80);
-  toast('Mission chargée — '+obs.length+' observations'); input.value='';
+  showMap(); setTimeout(initMap, 80);
+  toast('Mission chargée — '+obs.length+' observations');
+  input.value = '';
 }
 
 // UTILS
@@ -2047,6 +2129,13 @@ async function expPDF(){
     const ORANGE=[240,165,0], SURF=[26,29,39], GRAY=[120,118,130], DARK=[15,17,23];
 
     const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+    doc.setProperties({
+      title: 'Plan annote — '+(proj.name||'Mission'),
+      subject: 'Plan annote — '+(proj.ref||'sans reference'),
+      author: proj.ing || 'BTP Ingenierie',
+      creator: 'DiagTerrain',
+      keywords: 'diagnostic, structure, BTP, plan'
+    });
 
     // Fond sombre
     doc.setFillColor(...DARK); doc.rect(0,0,LW,LH,'F');
