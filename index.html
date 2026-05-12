@@ -164,6 +164,10 @@ select.fi-sm option{background:var(--sf)}
 .h-card-ic svg{width:20px;height:20px;stroke:var(--ac);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .h-card h3{font-size:20px;font-weight:500;margin-bottom:2px}
 .h-card p{font-size:20px;color:var(--tx2);line-height:1.35}
+.list-plan-hdr{padding:10px 16px 4px;font-size:13px;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;background:var(--bg);position:sticky;top:0;z-index:2}
+.list-plan-hdr b{color:var(--ac);font-weight:600;text-transform:none;letter-spacing:0}
+.plan-chip-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:rgba(0,0,0,.22);color:inherit;font-size:11px;font-weight:600;line-height:1;margin-left:2px}
+.plan-chip:not(.on) .plan-chip-badge{background:var(--ac2);color:var(--ac)}
 .plan-strip{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:0.5px solid var(--br);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
 .plan-strip::-webkit-scrollbar{display:none}
 .plan-chip{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:14px;border-radius:99px;border:0.5px solid var(--br2);background:var(--sf2);color:var(--tx2);cursor:pointer;white-space:nowrap;max-width:200px}
@@ -716,10 +720,15 @@ function updatePlanSelector(){
   const strip = document.getElementById('plan-strip');
   if(!strip) return;
   if(!plans.length){ strip.style.display = 'none'; return; }
+  // Sync l'obs count du plan courant depuis le scratchpad avant rendu
+  if(plans[currentPlanIdx]) plans[currentPlanIdx].obs = obs;
   let html = '';
   plans.forEach((p, i) => {
+    const count = (p.obs||[]).length;
+    const badge = count > 0 ? '<span class="plan-chip-badge">'+count+'</span>' : '';
     html += '<div class="plan-chip'+(i===currentPlanIdx?' on':'')+'" onclick="switchPlan('+i+')">'
          +    '<span class="plan-chip-name">'+esc(p.name)+'</span>'
+         +    badge
          +    (i===currentPlanIdx ? '<span class="plan-chip-menu" onclick="event.stopPropagation(); openPlanMenu('+i+')">⋯</span>' : '')
          +  '</div>';
   });
@@ -1131,9 +1140,20 @@ function setType(t){
   document.getElementById('pin-prev').className='pin-prev t-'+(t==='sondage'?'sondage':t);
 }
 
-function photoFileName(o, photoIdx){
+// Etiquette d'affichage d'une observation. En mode multi-plans, prefixe l'ID auto par
+// "P<numero>-" (ex: P2-05) pour eviter les collisions entre plans ET survivre au
+// nettoyage des noms de fichiers (le tiret est filename-safe, contrairement au point).
+// Si l'utilisateur a saisi un pinLabel, on l'utilise tel quel.
+function obsDisplayLabel(o, planIdx){
+  if(o.pinLabel) return o.pinLabel;
+  const padded = String(o.id).padStart(2,'0');
+  if(typeof planIdx === 'number' && plans.length > 1) return 'P'+(planIdx+1)+'-'+padded;
+  return padded;
+}
+
+function photoFileName(o, photoIdx, planIdx){
   const ref = (proj.ref||'DIAG').replace(/[^a-zA-Z0-9_-]/g,'');
-  const lbl = (o.pinLabel||String(o.id).padStart(2,'0')).replace(/[^a-zA-Z0-9_-]/g,'');
+  const lbl = obsDisplayLabel(o, planIdx).replace(/[^a-zA-Z0-9_-]/g,'');
   const letter = String.fromCharCode(65 + photoIdx); // A, B, C...
   return ref + '_' + lbl + letter + '.jpg';
 }
@@ -1431,7 +1451,7 @@ function renderAffairesList(){
       <div class="affaire-info">
         ${a.ref ? `<div class="affaire-ref">${esc(a.ref)}</div>` : ''}
         <div class="affaire-name">${esc(a.name)}</div>
-        <div class="affaire-meta">${a.obsCount} obs. · ${ds}${a.hasPlan ? '' : ' · <span style="color:var(--tx3)">sans plan</span>'}</div>
+        <div class="affaire-meta">${a.obsCount} obs.${a.planCount>1 ? ' · '+a.planCount+' plans' : ''} · ${ds}${a.hasPlan ? '' : ' · <span style="color:var(--tx3)">sans plan</span>'}</div>
       </div>
       <div class="affaire-actions">
         <button class="affaire-del" onclick="renameAffaire('${a.id}', event)" title="Renommer" style="margin-right:4px">
@@ -1697,26 +1717,68 @@ function initMap(){
 }
 
 // LIST
-function renderList(){
-  const body=document.getElementById('list-body');
-  if(obs.length===0){body.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Aucune observation.<br>Appui long sur le plan pour en ajouter.</p></div>';return;}
-  body.innerHTML=obs.map(o=>`<div class="li" onclick="openEditObs(${o.id})">
-    <div class="li-dot t-${o.type}"></div>
-    <div class="li-info">
-      <div class="li-id">OBS-${String(o.id).padStart(3,'0')}${o.pinLabel?' · <b>'+esc(o.pinLabel)+'</b>':''} · ${o.type.toUpperCase()}</div>
-      <div class="li-title">${esc(o.loc||o.text||'—')}</div>
-      <div class="li-meta">${o.date}${o.type==='fissure'&&o.fissure?.larg?' · '+o.fissure.larg+' mm':''}</div>
-    </div>
-    ${(o.photos||[]).length?'<div class="li-pc">'+(o.photos||[]).length+(o.photos.length>1?' photos':' photo')+'</div>':''}
-  </div>`).join('');
+// Switch sur un plan puis ouvre l'editeur d'une obs. Utilise depuis la liste agregee.
+function openObsFromList(planIdx, obsId){
+  if(planIdx !== currentPlanIdx){
+    syncCurrentPlanFromActive();
+    currentPlanIdx = planIdx;
+    loadPlanToActive(planIdx);
+    _eventsReady = false;
+    if(planImg) setTimeout(initMap, 30);
+    renderMk();
+    updateMapHint();
+    updatePlanSelector();
+  }
+  openEditObs(obsId);
 }
 
-// EXPORT
-function renderExp(){
-  document.getElementById('en-o').textContent=obs.length;
-  document.getElementById('en-f').textContent=obs.filter(o=>o.type==='fissure').length;
-  document.getElementById('en-p').textContent=obs.reduce((a,o)=>a+(o.photos||[]).length,0);
+function renderList(){
+  syncCurrentPlanFromActive();
+  const body=document.getElementById('list-body');
+  const totalObs = plans.reduce((s,p) => s+(p.obs||[]).length, 0);
+  if(totalObs === 0){
+    body.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Aucune observation.<br>Appui long sur le plan pour en ajouter.</p></div>';
+    return;
+  }
+  const multiPlan = plans.length > 1;
+  const renderObs = (o, planIdx) => {
+    const lbl = obsDisplayLabel(o, planIdx);
+    return `<div class="li" onclick="openObsFromList(${planIdx}, ${o.id})">
+      <div class="li-dot t-${o.type}"></div>
+      <div class="li-info">
+        <div class="li-id">OBS-${String(o.id).padStart(3,'0')}${o.pinLabel?' · <b>'+esc(o.pinLabel)+'</b>':' · <b>'+esc(lbl)+'</b>'} · ${o.type.toUpperCase()}</div>
+        <div class="li-title">${esc(o.loc||o.text||'—')}</div>
+        <div class="li-meta">${o.date}${o.type==='fissure'&&o.fissure?.larg?' · '+o.fissure.larg+' mm':''}</div>
+      </div>
+      ${(o.photos||[]).length?'<div class="li-pc">'+(o.photos||[]).length+(o.photos.length>1?' photos':' photo')+'</div>':''}
+    </div>`;
+  };
+  let html = '';
+  plans.forEach((p, pi) => {
+    const planObs = p.obs||[];
+    if(planObs.length === 0) return;
+    if(multiPlan){
+      html += `<div class="list-plan-hdr">Plan : <b>${esc(p.name||'')}</b> · ${planObs.length}</div>`;
+    }
+    html += planObs.map(o => renderObs(o, pi)).join('');
+  });
+  body.innerHTML = html;
+}
 
+// EXPORT — totaux tous plans confondus
+function renderExp(){
+  syncCurrentPlanFromActive();
+  let total = 0, fissures = 0, photos = 0;
+  plans.forEach(p => {
+    (p.obs||[]).forEach(o => {
+      total++;
+      if(o.type === 'fissure') fissures++;
+      photos += (o.photos||[]).length;
+    });
+  });
+  document.getElementById('en-o').textContent = total;
+  document.getElementById('en-f').textContent = fissures;
+  document.getElementById('en-p').textContent = photos;
 }
 
 function expJSON(){
@@ -1880,7 +1942,7 @@ async function expFichesWord(){
   syncCurrentPlanFromActive();
   // Aggrege obs de tous les plans (chaque entree garde une ref au plan d'origine)
   const allFiches = [];
-  plans.forEach(p => (p.obs||[]).forEach(o => allFiches.push({o, plan:p})));
+  plans.forEach((p, pi) => (p.obs||[]).forEach(o => allFiches.push({o, plan:p, planIdx:pi})));
   if(!allFiches.length){ toast('Aucune observation'); return; }
   if(typeof JSZip === 'undefined'){ toast('JSZip non chargé'); return; }
   const multiPlan = plans.length > 1;
@@ -1900,7 +1962,8 @@ async function expFichesWord(){
     for(let i=0;i<allFiches.length;i++){
       const o = allFiches[i].o;
       const fichePlan = allFiches[i].plan;
-      const lbl=o.pinLabel||String(o.id).padStart(2,'0');
+      const fichePlanIdx = allFiches[i].planIdx;
+      const lbl = obsDisplayLabel(o, fichePlanIdx);
       const typeLabel=o.type==='fissure'?'FISSURATION':o.type==='visuel'?'OBSERVATION VISUELLE':o.type==='sondage'?'SONDAGE':'OBSERVATION';
       const titreFiche=`${typeLabel} N°${lbl}${o.loc?' – '+o.loc:''}`;
       if(i>0) bodyAll+=`<w:p><w:pPr><w:pageBreakBefore/><w:sectPr>${sect}</w:sectPr></w:pPr></w:p>`;
@@ -1945,7 +2008,7 @@ async function expFichesWord(){
                     </pic:pic></a:graphicData></a:graphic>
               </wp:inline></w:drawing></w:r></w:p>`;
           // Légende photo
-          const fname=photoFileName(o,0);
+          const fname=photoFileName(o,0,fichePlanIdx);
           bodyAll+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="80"/></w:pPr>
             <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:i/><w:sz w:val="16"/><w:color w:val="${ORANGE}"/></w:rPr>
               <w:t>${escX(fname)}</w:t></w:r></w:p>`;
@@ -2024,7 +2087,7 @@ async function expFichesWord(){
                     </pic:pic></a:graphicData></a:graphic>
               </wp:inline></w:drawing></w:r>
             <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:i/><w:sz w:val="14"/><w:color w:val="${ORANGE}"/></w:rPr>
-              <w:t xml:space="preserve">  ${escX(photoFileName(o,pi))}</w:t></w:r></w:p>`;
+              <w:t xml:space="preserve">  ${escX(photoFileName(o,pi,fichePlanIdx))}</w:t></w:r></w:p>`;
           imgId++;
         }
       }
@@ -2073,7 +2136,7 @@ async function expFiches(){
   syncCurrentPlanFromActive();
   // Aggrege observations de tous les plans (incluant ref au plan d'origine)
   const allFiches = [];
-  plans.forEach(p => (p.obs||[]).forEach(o => allFiches.push({o, plan:p})));
+  plans.forEach((p, pi) => (p.obs||[]).forEach(o => allFiches.push({o, plan:p, planIdx:pi})));
   if(!allFiches.length){ toast('Aucune observation'); return; }
   const multiPlan = plans.length > 1;
   toast('Génération des fiches...');
@@ -2131,7 +2194,8 @@ async function expFiches(){
     for(let i=0; i<allFiches.length; i++){
       const o = allFiches[i].o;
       const fichePlan = allFiches[i].plan;
-      const lbl = o.pinLabel || String(o.id).padStart(2,'0');
+      const fichePlanIdx = allFiches[i].planIdx;
+      const lbl = obsDisplayLabel(o, fichePlanIdx);
       const col = colRgb(o.type);
 
       if(!firstPage) doc.addPage();
@@ -2163,7 +2227,7 @@ async function expFiches(){
           doc.addImage(photos[0].src,'JPEG', marg, y, TW, imgH);
           y += imgH + 2;
           // Légende photo
-          const fname = photoFileName(o, 0);
+          const fname = photoFileName(o, 0, fichePlanIdx);
           doc.setFontSize(8); doc.setTextColor(...ORANGE); doc.setFont('helvetica','italic');
           doc.text(fname, PA/2, y+4, {align:'center'});
           y += 8;
@@ -2249,8 +2313,8 @@ async function expFiches(){
           }catch(e){}
           // Légendes
           doc.setFontSize(7); doc.setTextColor(...ORANGE); doc.setFont('helvetica','italic');
-          doc.text(photoFileName(o, pi), marg+phW/2, y+phH+3, {align:'center'});
-          if(photos[pi+1]) doc.text(photoFileName(o, pi+1), marg+phW+6+phW/2, y+phH+3, {align:'center'});
+          doc.text(photoFileName(o, pi, fichePlanIdx), marg+phW/2, y+phH+3, {align:'center'});
+          if(photos[pi+1]) doc.text(photoFileName(o, pi+1, fichePlanIdx), marg+phW+6+phW/2, y+phH+3, {align:'center'});
           y += phH + 8;
         }
       }
@@ -2496,16 +2560,24 @@ function goRecap(){
 
 function renderRecap(){
   if(!proj.name){ return; }
+  syncCurrentPlanFromActive();
 
   // Référence
   document.getElementById('recap-ref').textContent = (proj.ref||'—') + (proj.ing?' · '+proj.ing:'');
 
-  // Stats
-  const totalPh = obs.reduce((s,o)=>s+(o.photos||[]).length,0);
+  // Stats globales (tous plans confondus)
+  let totalObs = 0, totalPh = 0;
   const byType = {fissure:0,visuel:0,sondage:0,autre:0};
-  obs.forEach(o=>{ if(byType[o.type]!==undefined) byType[o.type]++; else byType.autre++; });
+  plans.forEach(p => {
+    (p.obs||[]).forEach(o => {
+      totalObs++;
+      totalPh += (o.photos||[]).length;
+      if(byType[o.type]!==undefined) byType[o.type]++; else byType.autre++;
+    });
+  });
+  const multiPlan = plans.length > 1;
   document.getElementById('recap-stats').innerHTML = `
-    <div class="recap-stat"><div class="recap-stat-n">${obs.length}</div><div class="recap-stat-l">Observations</div></div>
+    <div class="recap-stat"><div class="recap-stat-n">${totalObs}</div><div class="recap-stat-l">Observations</div></div>
     <div class="recap-stat"><div class="recap-stat-n">${totalPh}</div><div class="recap-stat-l">Photos</div></div>
     <div class="recap-stat"><div class="recap-stat-n" style="color:var(--red)">${byType.fissure}</div><div class="recap-stat-l">Fissures</div></div>
     <div class="recap-stat"><div class="recap-stat-n" style="color:var(--grn)">${byType.sondage}</div><div class="recap-stat-l">Sondages</div></div>
@@ -2514,29 +2586,27 @@ function renderRecap(){
   // Bouton dl all
   document.getElementById('recap-dl-wrap').style.display = totalPh>0 ? 'block' : 'none';
 
-  // Body — liste observations
+  // Body — observations groupees par plan
   const body = document.getElementById('recap-body');
-  if(!obs.length){
+  if(totalObs === 0){
     body.innerHTML='<div style="padding:40px;text-align:center;color:var(--tx2)">Aucune observation</div>';
     return;
   }
 
-  body.innerHTML = obs.map(o=>{
-    const lbl  = o.pinLabel||String(o.id).padStart(2,'0');
+  const renderObs = (o, planIdx) => {
+    const lbl  = obsDisplayLabel(o, planIdx);
     const col  = o.type==='fissure'?'fissure':o.type==='visuel'?'visuel':o.type==='sondage'?'sondage':'autre';
     const photos = (o.photos||[]);
-
     const detailHtml = o.type==='fissure' && o.fissure
       ? `<div class="recap-obs-meta">L: ${o.fissure.larg||'—'} mm · Long: ${o.fissure.long||'—'} cm · ${o.fissure.ori||''} · ${o.fissure.act||''}</div>`
       : o.type==='sondage' && o.sondage
       ? `<div class="recap-obs-meta">${o.sondage.stype||''} ${o.sondage.dim?'· '+o.sondage.dim:''}</div>`
       : '';
-
     const photosHtml = (()=>{
       if(!photos.length) return '';
       let html = '<div class="recap-photos">';
       photos.forEach((ph,i)=>{
-        const fname = photoFileName(o, i);
+        const fname = photoFileName(o, i, planIdx);
         html += '<div class="recap-ph">'
           + '<img src="'+ph.src+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid var(--br2)" onclick="recapPreviewPhoto(this.src)">'
           + '<div class="recap-ph-dl" onclick="recapDlPhoto(this,'+JSON.stringify(fname)+')">'
@@ -2548,7 +2618,6 @@ function renderRecap(){
       html += '</div>';
       return html;
     })();
-
     return `<div class="recap-obs-card">
       <div class="recap-obs-hdr">
         <div class="recap-obs-dot ${col}"></div>
@@ -2561,7 +2630,18 @@ function renderRecap(){
       ${photosHtml}
       <div class="recap-obs-meta">${o.date||''}</div>
     </div>`;
-  }).join('');
+  };
+
+  let html = '';
+  plans.forEach((p, pi) => {
+    const planObs = p.obs||[];
+    if(planObs.length === 0) return;
+    if(multiPlan){
+      html += `<div class="list-plan-hdr">Plan : <b>${esc(p.name||'')}</b> · ${planObs.length}</div>`;
+    }
+    html += planObs.map(o => renderObs(o, pi)).join('');
+  });
+  body.innerHTML = html;
 
 
 }
@@ -2575,11 +2655,34 @@ function recapDlPhoto(btn, fname){
 const recapPreviewPhoto = previewPhoto; // alias retro-compatibilite
 
 async function downloadAllPhotos(){
-  const allPh=[];
-  obs.forEach(o=>(o.photos||[]).forEach((ph,i)=>{
-    if(ph.src) allPh.push({src:ph.src, name:photoFileName(o,i)});
-  }));
+  syncCurrentPlanFromActive();
+  const allPh = [];
+  plans.forEach((p, pi) => {
+    (p.obs||[]).forEach(o => (o.photos||[]).forEach((ph, i) => {
+      if(ph.src) allPh.push({src: ph.src, name: photoFileName(o, i, pi)});
+    }));
+  });
   if(!allPh.length){ toast('Aucune photo à télécharger'); return; }
+  // Si JSZip dispo, on emballe tout en un seul ZIP (Safari mobile bloque les
+  // <a>.click() en serie au-dela de 2-3). Sinon, fallback sequentiel.
+  if(typeof JSZip !== 'undefined'){
+    toast('Préparation du ZIP de '+allPh.length+' photo(s)...');
+    try{
+      const zip = new JSZip();
+      allPh.forEach(p => {
+        const b64 = p.src.split(',')[1];
+        if(b64) zip.file(p.name, b64, {base64:true});
+      });
+      const blob = await zip.generateAsync({type:'blob'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = (proj.ref||'mission')+'_photos.zip'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast(allPh.length+' photo(s) dans le ZIP');
+      return;
+    }catch(e){ console.warn('ZIP échec, fallback séquentiel:', e); }
+  }
+  // Fallback : downloads séquentiels (Chrome/Firefox)
   toast('Téléchargement de '+allPh.length+' photo(s)...');
   for(let i=0;i<allPh.length;i++){
     await new Promise(r=>setTimeout(r,350));
