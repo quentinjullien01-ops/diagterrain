@@ -181,6 +181,32 @@ select.fi-sm option{background:var(--sf)}
 /* Modal de saisie (remplace prompt() natif, parfois casse en PWA fullscreen Android) */
 .prompt-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.92);z-index:301;background:var(--sf);border:0.5px solid var(--br2);border-radius:14px;padding:18px;min-width:280px;max-width:90vw;display:none;flex-direction:column;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transition:opacity .15s,transform .15s}
 .prompt-modal.on{display:flex;opacity:1;transform:translate(-50%,-50%) scale(1)}
+/* Annotation editor (photo + canvas overlay + toolbar) */
+.anno-editor{position:fixed;inset:0;z-index:310;background:#000;display:none;flex-direction:column}
+.anno-editor.on{display:flex}
+.anno-stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px}
+.anno-photo-wrap{position:relative;max-width:100%;max-height:100%;display:flex;align-items:center;justify-content:center}
+.anno-photo{display:block;max-width:100%;max-height:calc(100dvh - 140px);object-fit:contain;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.anno-canvas{position:absolute;inset:0;touch-action:none;cursor:crosshair}
+.anno-toolbar{flex-shrink:0;background:#1a1d27;border-top:0.5px solid var(--br2);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;color:#f0ede8}
+.anno-tools, .anno-colors, .anno-widths{display:flex;gap:6px;align-items:center;background:#0f1117;border:0.5px solid var(--br2);border-radius:10px;padding:5px}
+.anno-tool{width:38px;height:38px;border-radius:7px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#f0ede8}
+.anno-tool svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.anno-tool.on{background:var(--ac);color:#000}
+.anno-color{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0}
+.anno-color.on{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac)}
+.anno-width{width:38px;height:34px;border-radius:7px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.anno-width.on{background:var(--ac)}
+.anno-width div{background:#f0ede8;border-radius:99px}
+.anno-width.on div{background:#000}
+.anno-actions{display:flex;gap:8px;align-items:center}
+.anno-btn{padding:9px 14px;border-radius:8px;border:none;font-size:14px;cursor:pointer;font-family:inherit}
+.anno-btn.ic{padding:9px;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+.anno-btn.ic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.anno-btn.ghost{background:#0f1117;color:#f0ede8;border:0.5px solid var(--br2)}
+.anno-btn.primary{background:var(--ac);color:#000;font-weight:600}
+.anno-btn.danger{background:#0f1117;color:#e05252;border:0.5px solid var(--br2)}
+.anno-btn:active{opacity:.7}
 .prompt-title{font-size:16px;font-weight:600;color:var(--tx)}
 .prompt-input{padding:12px 14px;font-size:18px;background:var(--sf2);border:0.5px solid var(--br2);border-radius:8px;color:var(--tx);font-family:inherit;outline:none}
 .prompt-input:focus{border-color:var(--ac)}
@@ -201,6 +227,8 @@ select.fi-sm option{background:var(--sf)}
 .ph-wrap{position:relative}
 .ph-trash{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;background:var(--red,#e05252);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4);z-index:2}
 .ph-trash svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ph-anno-badge{position:absolute;top:-6px;left:-6px;width:24px;height:24px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4);z-index:2;pointer-events:none}
+.ph-anno-badge svg{width:13px;height:13px;stroke:#000;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #ibanner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:var(--ac);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px)) 16px;align-items:center;gap:12px}
 #ibanner p{flex:1;font-size:20px;font-weight:600;color:#000}
 .ib-no{background:rgba(0,0,0,.15);border:none;border-radius:8px;padding:7px 12px;font-size:20px;font-weight:600;color:#000;cursor:pointer}
@@ -303,6 +331,43 @@ select.fi-sm option{background:var(--sf)}
   <div class="plan-menu-btn" onclick="planMenuReload()">Recharger l'image</div>
   <div class="plan-menu-btn danger" id="plan-menu-delete" onclick="planMenuDelete()">Supprimer ce plan</div>
   <div class="plan-menu-btn cancel" onclick="closePlanMenu()">Annuler</div>
+</div>
+<div class="anno-editor" id="anno-editor">
+  <div class="anno-stage" id="anno-stage">
+    <div class="anno-photo-wrap" id="anno-photo-wrap">
+      <img class="anno-photo" id="anno-photo" alt="">
+      <canvas class="anno-canvas" id="anno-canvas"></canvas>
+    </div>
+  </div>
+  <div class="anno-toolbar">
+    <div class="anno-tools" id="anno-tools">
+      <button class="anno-tool on" data-tool="freehand" title="Dessin libre"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 17l8-8 4 4-8 8H5v-4z"/><path d="M14 7l3-3a2 2 0 1 1 3 3l-3 3"/></svg></button>
+      <button class="anno-tool" data-tool="arrow" title="Flèche"><svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg></button>
+      <button class="anno-tool" data-tool="circle" title="Cercle"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></button>
+      <button class="anno-tool" data-tool="text" title="Texte"><svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg></button>
+    </div>
+    <div class="anno-colors" id="anno-colors">
+      <button class="anno-color on" data-color="#e05252" style="background:#e05252" title="Rouge"></button>
+      <button class="anno-color" data-color="#f0a500" style="background:#f0a500" title="Orange"></button>
+      <button class="anno-color" data-color="#ffffff" style="background:#fff" title="Blanc"></button>
+      <button class="anno-color" data-color="#000000" style="background:#000" title="Noir"></button>
+    </div>
+    <div class="anno-widths" id="anno-widths">
+      <button class="anno-width" data-width="3" title="Fin"><div style="width:18px;height:3px"></div></button>
+      <button class="anno-width on" data-width="6" title="Moyen"><div style="width:22px;height:6px"></div></button>
+      <button class="anno-width" data-width="12" title="Épais"><div style="width:26px;height:10px"></div></button>
+    </div>
+    <div class="anno-actions">
+      <button class="anno-btn ghost ic" id="anno-undo" title="Annuler la dernière">
+        <svg viewBox="0 0 24 24"><polyline points="3 7 3 13 9 13"/><path d="M21 17a8 8 0 0 0-15-5l-3 3"/></svg>
+      </button>
+      <button class="anno-btn danger ic" id="anno-clear" title="Tout effacer">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+      <button class="anno-btn ghost" id="anno-cancel">Fermer</button>
+      <button class="anno-btn primary" id="anno-save">Enregistrer</button>
+    </div>
+  </div>
 </div>
 <div class="prompt-modal" id="prompt-modal">
   <div class="prompt-title" id="prompt-title">—</div>
@@ -1155,7 +1220,7 @@ function openEditObs(id, keepPhotos){
     document.getElementById('s-dim').value=o.sondage.dim||'';
     document.getElementById('s-obs').value=o.sondage.obs||'';
   }
-  if(!keepPhotos) curPhotos=(o.photos||[]).map(p=>({src:p.src}));
+  if(!keepPhotos) curPhotos=(o.photos||[]).map(p=>({src:p.src, annotations:p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : undefined}));
   renderPhotoRow(curPhotos); openSheet();
 }
 
@@ -1215,8 +1280,17 @@ function renderPhotoRow(photos){
   photos.forEach((ph,i)=>{
     const w=document.createElement('div'); w.className='ph-wrap';
     const img=document.createElement('img'); img.className='ph-thumb'; img.src=ph.src;
-    img.onclick=()=>previewPhoto(ph.src);
+    // Passe l'objet photo pour activer le bouton "Annoter" + rendu des annotations
+    img.onclick=()=>previewPhoto(ph, () => curPhotos[i], () => renderPhotoRow(curPhotos));
     w.appendChild(img);
+    // Badge "annotee" si annotations presentes
+    if(ph.annotations && ph.annotations.length > 0){
+      const badge=document.createElement('div');
+      badge.className='ph-anno-badge';
+      badge.title=ph.annotations.length+' annotation'+(ph.annotations.length>1?'s':'');
+      badge.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 21h18M5 17l8-8 4 4-8 8H5v-4z"/><path d="M14 7l3-3a2 2 0 1 1 3 3l-3 3"/></svg>';
+      w.appendChild(badge);
+    }
     // Bouton corbeille (suppression avec undo)
     const trash=document.createElement('div');
     trash.className='ph-trash';
@@ -1863,6 +1937,72 @@ function colRgb(t){
   return t==='fissure'?[224,82,82]:t==='visuel'?[74,158,255]:t==='sondage'?[76,175,125]:[154,151,160];
 }
 
+// ── ANNOTATIONS DE PHOTOS ──
+// Schema d'une annotation (stockee dans photo.annotations[]):
+//   {type:'freehand', points:[[x,y],...], color:'#rrggbb', width:N}
+//   {type:'arrow',    from:[x,y], to:[x,y],  color, width}
+//   {type:'circle',   center:[x,y], radius:N, color, width}
+//   {type:'text',     pos:[x,y], text:'...', color, size:N}
+// Toutes les coords sont en pixels de l'image d'origine.
+
+// Rend une photo avec ses annotations dessinees dessus. Retourne une dataURL JPEG.
+// Si pas d'annotations, renvoie la source telle quelle pour eviter l'allocation canvas.
+function renderPhotoAnnotated(src, annotations){
+  if(!annotations || annotations.length === 0) return Promise.resolve(src);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for(const a of annotations){
+        if(!a || !a.type) continue;
+        ctx.strokeStyle = a.color || '#e05252';
+        ctx.fillStyle = a.color || '#e05252';
+        ctx.lineWidth = a.width || 4;
+        try {
+          if(a.type === 'freehand' && Array.isArray(a.points) && a.points.length > 1){
+            ctx.beginPath();
+            ctx.moveTo(a.points[0][0], a.points[0][1]);
+            for(let i=1; i<a.points.length; i++) ctx.lineTo(a.points[i][0], a.points[i][1]);
+            ctx.stroke();
+          } else if(a.type === 'arrow' && a.from && a.to){
+            const [x1,y1] = a.from, [x2,y2] = a.to;
+            ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+            // Tete de fleche
+            const ang = Math.atan2(y2-y1, x2-x1);
+            const head = Math.max(12, (a.width||4) * 4);
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - head*Math.cos(ang - Math.PI/7), y2 - head*Math.sin(ang - Math.PI/7));
+            ctx.lineTo(x2 - head*Math.cos(ang + Math.PI/7), y2 - head*Math.sin(ang + Math.PI/7));
+            ctx.closePath(); ctx.fill();
+          } else if(a.type === 'circle' && a.center && a.radius > 0){
+            ctx.beginPath();
+            ctx.arc(a.center[0], a.center[1], a.radius, 0, Math.PI*2);
+            ctx.stroke();
+          } else if(a.type === 'text' && a.pos && a.text){
+            const size = a.size || 32;
+            ctx.font = `bold ${size}px sans-serif`;
+            ctx.textBaseline = 'top';
+            // Halo sombre pour contraste (texte clair sur photo claire ne disparait pas)
+            ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+            ctx.lineWidth = Math.max(3, size/12);
+            ctx.strokeText(a.text, a.pos[0], a.pos[1]);
+            ctx.fillStyle = a.color || '#fff';
+            ctx.fillText(a.text, a.pos[0], a.pos[1]);
+          }
+        } catch(_) { /* annotation malformee : on saute */ }
+      }
+      resolve(c.toDataURL('image/jpeg', 0.9));
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
 // Genere une miniature de plan avec un pin en surbrillance (utilise en fiche PDF
 // et fiche Word). Retourne une dataURL JPEG. Cap a 1200px sur le grand cote.
 function renderPlanMiniature(baseImgEl, o, lbl){
@@ -2072,6 +2212,16 @@ async function expFichesWord(){
       planImgCache.set(dataUrl, im);
       return im;
     }
+    // Pre-render des annotations sur photos annotees (idem PDF)
+    const photoSrcCache = new Map();
+    for(const f of allFiches){
+      for(const ph of (f.o.photos||[])){
+        if(ph && ph.src && ph.annotations && ph.annotations.length > 0){
+          photoSrcCache.set(ph, await renderPhotoAnnotated(ph.src, ph.annotations));
+        }
+      }
+    }
+    const photoSrc = ph => photoSrcCache.get(ph) || (ph && ph.src) || '';
 
     for(let i=0;i<allFiches.length;i++){
       const o = allFiches[i].o;
@@ -2102,7 +2252,7 @@ async function expFichesWord(){
       // Photo principale pleine largeur (si dispo)
       const photos=o.photos||[];
       if(photos.length>0&&photos[0].src){
-        const b64=photos[0].src.split(',')[1];
+        const b64=photoSrc(photos[0]).split(',')[1];
         if(b64){
           const fn=`img${imgId}.jpg`;
           mediaFiles[fn]=b64;
@@ -2182,7 +2332,7 @@ async function expFichesWord(){
           <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  Vues complémentaires</w:t></w:r></w:p>`;
         for(let pi=1;pi<photos.length&&pi<5;pi++){
           const ph=photos[pi]; if(!ph.src)continue;
-          const b64=ph.src.split(',')[1]; if(!b64)continue;
+          const b64=photoSrc(ph).split(',')[1]; if(!b64)continue;
           const fn=`img${imgId}.jpg`;
           mediaFiles[fn]=b64;
           imgRels+=`<Relationship Id="rId${imgId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${fn}"/>`;
@@ -2349,6 +2499,17 @@ async function expFiches(){
       planImgCache.set(dataUrl, im);
       return im;
     }
+    // Pre-render des annotations sur toutes les photos annotees. La dataURL bakee
+    // remplace photo.src pendant l'export (cache local, photo originale intacte).
+    const photoSrcCache = new Map();
+    for(const f of allFiches){
+      for(const ph of (f.o.photos||[])){
+        if(ph && ph.src && ph.annotations && ph.annotations.length > 0){
+          photoSrcCache.set(ph, await renderPhotoAnnotated(ph.src, ph.annotations));
+        }
+      }
+    }
+    const photoSrc = ph => photoSrcCache.get(ph) || (ph && ph.src) || '';
 
     for(let i=0; i<allFiches.length; i++){
       const o = allFiches[i].o;
@@ -2383,7 +2544,7 @@ async function expFiches(){
       if(photos.length > 0 && photos[0].src){
         try{
           const imgH = 110; // hauteur photo principale
-          doc.addImage(photos[0].src,'JPEG', marg, y, TW, imgH);
+          doc.addImage(photoSrc(photos[0]),'JPEG', marg, y, TW, imgH);
           y += imgH + 2;
           // Légende photo
           const fname = photoFileName(o, 0, fichePlanIdx);
@@ -2466,9 +2627,9 @@ async function expFiches(){
           if(y + phH + 14 > PB-14) break; // pas de dépassement
           try{
             const ph1 = photos[pi];
-            if(ph1.src) doc.addImage(ph1.src,'JPEG', marg, y, phW, phH);
+            if(ph1.src) doc.addImage(photoSrc(ph1),'JPEG', marg, y, phW, phH);
             const ph2 = photos[pi+1];
-            if(ph2&&ph2.src) doc.addImage(ph2.src,'JPEG', marg+phW+6, y, phW, phH);
+            if(ph2&&ph2.src) doc.addImage(photoSrc(ph2),'JPEG', marg+phW+6, y, phW, phH);
           }catch(e){}
           // Légendes
           doc.setFontSize(7); doc.setTextColor(...ORANGE); doc.setFont('helvetica','italic');
@@ -2506,6 +2667,45 @@ async function expFiches(){
 const _VALID_TYPES = new Set(['fissure','visuel','sondage','autre']);
 function _safeStr(v, max){ return typeof v === 'string' ? v.slice(0, max||500) : ''; }
 function _safeImg(v){ return (typeof v === 'string' && /^data:image\//i.test(v)) ? v : ''; }
+// Couleur valide format #rrggbb / #rgb (refuse javascript: et autres injections via CSS)
+const _COLOR_RE = /^#[0-9a-f]{3}([0-9a-f]{3})?$/i;
+function _safeColor(c){ return (typeof c === 'string' && _COLOR_RE.test(c)) ? c : '#e05252'; }
+function _safeNum(n, min, max, fallback){
+  return (typeof n === 'number' && isFinite(n) && n >= min && n <= max) ? n : fallback;
+}
+function _safePoint(p){
+  return Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number' ? [p[0], p[1]] : null;
+}
+function _sanitizeAnnotations(arr){
+  if(!Array.isArray(arr)) return [];
+  return arr.map(a => {
+    if(!a || typeof a !== 'object') return null;
+    if(a.type === 'freehand'){
+      const pts = Array.isArray(a.points) ? a.points.map(_safePoint).filter(Boolean).slice(0, 2000) : [];
+      if(pts.length < 2) return null;
+      return {type:'freehand', points:pts, color:_safeColor(a.color), width:_safeNum(a.width, 1, 50, 4)};
+    }
+    if(a.type === 'arrow'){
+      const from = _safePoint(a.from), to = _safePoint(a.to);
+      if(!from || !to) return null;
+      return {type:'arrow', from, to, color:_safeColor(a.color), width:_safeNum(a.width, 1, 50, 4)};
+    }
+    if(a.type === 'circle'){
+      const center = _safePoint(a.center);
+      const radius = _safeNum(a.radius, 1, 99999, 30);
+      if(!center) return null;
+      return {type:'circle', center, radius, color:_safeColor(a.color), width:_safeNum(a.width, 1, 50, 4)};
+    }
+    if(a.type === 'text'){
+      const pos = _safePoint(a.pos);
+      const text = _safeStr(a.text, 200);
+      if(!pos || !text) return null;
+      return {type:'text', pos, text, color:_safeColor(a.color), size:_safeNum(a.size, 8, 200, 32)};
+    }
+    return null;
+  }).filter(Boolean).slice(0, 500);
+}
+
 function _sanitizeObs(rawObs){
   return (Array.isArray(rawObs) ? rawObs : []).map(o => {
     if(!o || typeof o !== 'object') return null;
@@ -2519,7 +2719,13 @@ function _sanitizeObs(rawObs){
       loc:      _safeStr(o.loc, 500),
       date:     _safeStr(o.date, 40),
       photos: (Array.isArray(o.photos) ? o.photos : [])
-        .map(ph => ({src: _safeImg(ph && ph.src)}))
+        .map(ph => {
+          const safePh = {src: _safeImg(ph && ph.src)};
+          if(ph && Array.isArray(ph.annotations)){
+            safePh.annotations = _sanitizeAnnotations(ph.annotations);
+          }
+          return safePh;
+        })
         .filter(ph => ph.src)
     };
     if(o.fissure && typeof o.fissure === 'object'){
@@ -2669,13 +2875,254 @@ function promptModal(title, defaultValue, placeholder){
   });
 }
 
-function previewPhoto(src){
-  const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:flex;align-items:center;justify-content:center';
-  ov.onclick=()=>ov.remove();
-  const img=document.createElement('img');
-  img.src=src; img.style.cssText='max-width:96vw;max-height:92vh;border-radius:8px;object-fit:contain';
-  ov.appendChild(img); document.body.appendChild(ov);
+// ── EDITEUR D'ANNOTATIONS ──
+// State : pendant l'edition d'une photo, on accumule les annotations dans _annoList.
+// Sauvegarde -> ecriture dans le photo.annotations cible. Fermer/annuler -> jeter.
+let _annoTool = 'freehand', _annoColor = '#e05252', _annoWidth = 6;
+let _annoList = [];                  // annotations validees (en pixels image d'origine)
+let _annoCurrent = null;              // annotation en cours de trace (pointerdown -> pointerup)
+let _annoImgScale = 1;                // canvas px -> image px (image originale / display)
+let _annoTarget = null;               // {obsId, photoIdx} - ou ecrire les annotations a la sauvegarde
+
+function _annoSetTool(t){
+  _annoTool = t;
+  document.querySelectorAll('#anno-tools .anno-tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+}
+function _annoSetColor(c){
+  _annoColor = c;
+  document.querySelectorAll('#anno-colors .anno-color').forEach(b => b.classList.toggle('on', b.dataset.color === c));
+}
+function _annoSetWidth(w){
+  _annoWidth = w;
+  document.querySelectorAll('#anno-widths .anno-width').forEach(b => b.classList.toggle('on', +b.dataset.width === w));
+}
+
+// Redessine TOUTES les annotations sur le canvas (utilise apres undo, ajout, etc.)
+function _annoRedraw(){
+  const cvs = document.getElementById('anno-canvas');
+  const ctx = cvs.getContext('2d');
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const list = _annoCurrent ? _annoList.concat([_annoCurrent]) : _annoList;
+  for(const a of list){
+    if(!a || !a.type) continue;
+    ctx.strokeStyle = a.color || '#e05252';
+    ctx.fillStyle = a.color || '#e05252';
+    ctx.lineWidth = (a.width || 4) / _annoImgScale; // canvas px
+    if(a.type === 'freehand' && a.points && a.points.length > 1){
+      ctx.beginPath();
+      const p0 = _imgToCanvas(a.points[0]);
+      ctx.moveTo(p0[0], p0[1]);
+      for(let i=1; i<a.points.length; i++){
+        const p = _imgToCanvas(a.points[i]);
+        ctx.lineTo(p[0], p[1]);
+      }
+      ctx.stroke();
+    } else if(a.type === 'arrow' && a.from && a.to){
+      const [x1,y1] = _imgToCanvas(a.from), [x2,y2] = _imgToCanvas(a.to);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      const ang = Math.atan2(y2-y1, x2-x1);
+      const head = Math.max(12, (a.width||4) / _annoImgScale * 4);
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - head*Math.cos(ang - Math.PI/7), y2 - head*Math.sin(ang - Math.PI/7));
+      ctx.lineTo(x2 - head*Math.cos(ang + Math.PI/7), y2 - head*Math.sin(ang + Math.PI/7));
+      ctx.closePath(); ctx.fill();
+    } else if(a.type === 'circle' && a.center && a.radius > 0){
+      const c = _imgToCanvas(a.center);
+      ctx.beginPath(); ctx.arc(c[0], c[1], a.radius / _annoImgScale, 0, Math.PI*2); ctx.stroke();
+    } else if(a.type === 'text' && a.pos && a.text){
+      const p = _imgToCanvas(a.pos);
+      const size = (a.size || 32) / _annoImgScale;
+      ctx.font = `bold ${size}px sans-serif`;
+      ctx.textBaseline = 'top';
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = Math.max(3, size/12);
+      ctx.strokeText(a.text, p[0], p[1]);
+      ctx.fillStyle = a.color || '#fff';
+      ctx.fillText(a.text, p[0], p[1]);
+    }
+  }
+}
+
+// Conversions image <-> canvas (gardent les coords stockees en pixel image d'origine)
+function _canvasToImg(pt){ return [pt[0] * _annoImgScale, pt[1] * _annoImgScale]; }
+function _imgToCanvas(pt){ return [pt[0] / _annoImgScale, pt[1] / _annoImgScale]; }
+function _annoPointerPos(e){
+  const cvs = document.getElementById('anno-canvas');
+  const rect = cvs.getBoundingClientRect();
+  // Echelle CSS -> canvas internal (en cas de devicePixelRatio)
+  return [
+    (e.clientX - rect.left) * (cvs.width / rect.width),
+    (e.clientY - rect.top) * (cvs.height / rect.height)
+  ];
+}
+
+async function _annoStart(e){
+  e.preventDefault();
+  const cvs = document.getElementById('anno-canvas');
+  cvs.setPointerCapture && cvs.setPointerCapture(e.pointerId);
+  const cp = _annoPointerPos(e);
+  const ip = _canvasToImg(cp);
+  if(_annoTool === 'freehand'){
+    _annoCurrent = {type:'freehand', points:[ip], color:_annoColor, width:_annoWidth};
+  } else if(_annoTool === 'arrow'){
+    _annoCurrent = {type:'arrow', from:ip, to:ip, color:_annoColor, width:_annoWidth};
+  } else if(_annoTool === 'circle'){
+    _annoCurrent = {type:'circle', center:ip, radius:1, color:_annoColor, width:_annoWidth};
+  } else if(_annoTool === 'text'){
+    // Texte : on pose le point ici, on demandera le contenu au pointerup
+    _annoCurrent = {type:'text', pos:ip, text:'', color:_annoColor, size:Math.max(20, _annoWidth * 6)};
+  }
+  _annoRedraw();
+}
+function _annoMove(e){
+  if(!_annoCurrent) return;
+  e.preventDefault();
+  const cp = _annoPointerPos(e);
+  const ip = _canvasToImg(cp);
+  if(_annoCurrent.type === 'freehand'){
+    const last = _annoCurrent.points[_annoCurrent.points.length-1];
+    // Throttle : ignore si pixel image proche du dernier (limite la taille des annotations)
+    if(Math.hypot(ip[0]-last[0], ip[1]-last[1]) > 3) _annoCurrent.points.push(ip);
+  } else if(_annoCurrent.type === 'arrow'){
+    _annoCurrent.to = ip;
+  } else if(_annoCurrent.type === 'circle'){
+    _annoCurrent.radius = Math.hypot(ip[0]-_annoCurrent.center[0], ip[1]-_annoCurrent.center[1]);
+  }
+  // Text n'a pas de drag
+  _annoRedraw();
+}
+async function _annoEnd(e){
+  if(!_annoCurrent) return;
+  e.preventDefault();
+  const a = _annoCurrent; _annoCurrent = null;
+  // Validation par type
+  if(a.type === 'freehand' && a.points.length < 2){ _annoRedraw(); return; }
+  if(a.type === 'arrow'){
+    const d = Math.hypot(a.to[0]-a.from[0], a.to[1]-a.from[1]);
+    if(d < 10){ _annoRedraw(); return; }
+  }
+  if(a.type === 'circle' && a.radius < 8){ _annoRedraw(); return; }
+  if(a.type === 'text'){
+    const txt = await promptModal('Texte', '', 'Ex: 0.3 mm, fissure active...');
+    if(!txt || !txt.trim()){ _annoRedraw(); return; }
+    a.text = txt.trim();
+  }
+  _annoList.push(a);
+  _annoRedraw();
+}
+
+// Ouvre l'editeur sur une photo donnee. La sauvegarde ecrira dans photo.annotations.
+function openAnnotator(getPhoto, onSave){
+  const ph = getPhoto();
+  if(!ph || !ph.src){ toast('Photo introuvable'); return; }
+  _annoList = (ph.annotations || []).map(a => JSON.parse(JSON.stringify(a)));
+  _annoCurrent = null;
+  _annoTool = 'freehand'; _annoColor = '#e05252'; _annoWidth = 6;
+  _annoSetTool(_annoTool); _annoSetColor(_annoColor); _annoSetWidth(_annoWidth);
+
+  const editor = document.getElementById('anno-editor');
+  const img = document.getElementById('anno-photo');
+  const cvs = document.getElementById('anno-canvas');
+  editor.classList.add('on');
+  img.src = ph.src;
+  img.onload = () => {
+    // Calcul de l'echelle image originale / display CSS
+    const dispW = img.clientWidth || img.naturalWidth;
+    const dispH = img.clientHeight || img.naturalHeight;
+    _annoImgScale = img.naturalWidth / dispW; // px image par px CSS
+    // Canvas a la taille du conteneur photo (CSS pixels)
+    const wrap = document.getElementById('anno-photo-wrap');
+    cvs.style.width = dispW+'px';
+    cvs.style.height = dispH+'px';
+    cvs.width = dispW;
+    cvs.height = dispH;
+    wrap.style.width = dispW+'px';
+    wrap.style.height = dispH+'px';
+    _annoRedraw();
+  };
+
+  // Cleanup precedents handlers eventuels
+  cvs.onpointerdown = _annoStart;
+  cvs.onpointermove = _annoMove;
+  cvs.onpointerup = _annoEnd;
+  cvs.onpointercancel = _annoEnd;
+
+  document.querySelectorAll('#anno-tools .anno-tool').forEach(b => b.onclick = () => _annoSetTool(b.dataset.tool));
+  document.querySelectorAll('#anno-colors .anno-color').forEach(b => b.onclick = () => _annoSetColor(b.dataset.color));
+  document.querySelectorAll('#anno-widths .anno-width').forEach(b => b.onclick = () => _annoSetWidth(+b.dataset.width));
+  document.getElementById('anno-undo').onclick = () => { _annoList.pop(); _annoRedraw(); };
+  document.getElementById('anno-clear').onclick = () => { _annoList = []; _annoRedraw(); };
+  document.getElementById('anno-cancel').onclick = () => closeAnnotator();
+  document.getElementById('anno-save').onclick = () => {
+    const target = getPhoto();
+    if(target){
+      if(_annoList.length > 0) target.annotations = _annoList.slice();
+      else delete target.annotations;
+    }
+    closeAnnotator();
+    if(typeof onSave === 'function') onSave();
+  };
+}
+function closeAnnotator(){
+  document.getElementById('anno-editor').classList.remove('on');
+  _annoList = []; _annoCurrent = null;
+}
+
+// previewPhoto accepte soit une src (string), soit un objet {src, annotations}.
+// Si un objet photo est fourni, un bouton "Annoter" s'affiche et permet d'ouvrir
+// l'editeur d'annotations directement sur cette photo. getPhotoRef est une
+// fonction qui retourne la photo cible (utile pour les vignettes du recap ou
+// la liste curPhotos qui peut etre re-creee).
+function previewPhoto(srcOrPhoto, getPhotoRef, onChange){
+  let src, photoRef = null;
+  if(typeof srcOrPhoto === 'string'){
+    src = srcOrPhoto;
+  } else if(srcOrPhoto && typeof srcOrPhoto === 'object'){
+    src = srcOrPhoto.src;
+    photoRef = srcOrPhoto;
+  }
+  if(!src) return;
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px';
+  ov.onclick = e => { if(e.target === ov) ov.remove(); };
+  const img = document.createElement('img');
+  img.style.cssText = 'max-width:96vw;max-height:84vh;border-radius:8px;object-fit:contain';
+  // Render annotations a la volee si photoRef
+  if(photoRef && photoRef.annotations && photoRef.annotations.length > 0){
+    renderPhotoAnnotated(src, photoRef.annotations).then(d => { img.src = d; });
+  } else {
+    img.src = src;
+  }
+  ov.appendChild(img);
+  // Toolbar
+  if(photoRef || getPhotoRef){
+    const bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;gap:10px';
+    const annoBtn = document.createElement('button');
+    annoBtn.className = 'anno-btn primary';
+    annoBtn.innerHTML = '<svg viewBox="0 0 24 24" style="width:18px;height:18px;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 21h18"/><path d="M5 17l8-8 4 4-8 8H5v-4z"/><path d="M14 7l3-3a2 2 0 1 1 3 3l-3 3"/></svg> Annoter';
+    annoBtn.onclick = e => {
+      e.stopPropagation();
+      ov.remove();
+      openAnnotator(
+        () => photoRef || (getPhotoRef && getPhotoRef()),
+        () => {
+          // Re-render des vignettes potentiellement affectees
+          if(typeof onChange === 'function') onChange();
+        }
+      );
+    };
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'anno-btn ghost';
+    closeBtn.textContent = 'Fermer';
+    closeBtn.onclick = () => ov.remove();
+    bar.appendChild(annoBtn);
+    bar.appendChild(closeBtn);
+    ov.appendChild(bar);
+  }
+  document.body.appendChild(ov);
 }
 
 // PWA
@@ -2775,8 +3222,12 @@ function renderRecap(){
       let html = '<div class="recap-photos">';
       photos.forEach((ph,i)=>{
         const fname = photoFileName(o, i, planIdx);
-        html += '<div class="recap-ph">'
-          + '<img src="'+ph.src+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid var(--br2)" onclick="recapPreviewPhoto(this.src)">'
+        const annoBadge = (ph.annotations && ph.annotations.length > 0)
+          ? '<div class="ph-anno-badge" style="top:2px;left:2px;width:18px;height:18px"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 17l8-8 4 4-8 8H5v-4z"/><path d="M14 7l3-3a2 2 0 1 1 3 3l-3 3"/></svg></div>'
+          : '';
+        html += '<div class="recap-ph" style="position:relative">'
+          + '<img src="'+ph.src+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid var(--br2)" onclick="recapPreviewObsPhoto('+planIdx+','+o.id+','+i+')">'
+          + annoBadge
           + '<div class="recap-ph-dl" onclick="recapDlPhoto(this,'+JSON.stringify(fname)+')">'
           + '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
           + '</div>'
@@ -2822,14 +3273,41 @@ function recapDlPhoto(btn, fname){
 
 const recapPreviewPhoto = previewPhoto; // alias retro-compatibilite
 
+// Preview d'une photo du recap avec acces aux annotations. On lookup la photo
+// dans plans[planIdx].obs en utilisant l'obs id + photo idx pour pouvoir muter
+// l'objet ; modifs persistees via autosave().
+function recapPreviewObsPhoto(planIdx, obsId, photoIdx){
+  const plan = plans[planIdx];
+  if(!plan) return;
+  const o = (plan.obs||[]).find(x => x.id === obsId);
+  if(!o) return;
+  const ph = (o.photos||[])[photoIdx];
+  if(!ph) return;
+  previewPhoto(ph, () => {
+    const p2 = plans[planIdx]; if(!p2) return null;
+    const o2 = (p2.obs||[]).find(x => x.id === obsId); if(!o2) return null;
+    return (o2.photos||[])[photoIdx];
+  }, () => { renderRecap(); autosave().catch(()=>{}); });
+}
+
 async function downloadAllPhotos(){
   syncCurrentPlanFromActive();
   const allPh = [];
-  plans.forEach((p, pi) => {
-    (p.obs||[]).forEach(o => (o.photos||[]).forEach((ph, i) => {
-      if(ph.src) allPh.push({src: ph.src, name: photoFileName(o, i, pi)});
-    }));
-  });
+  for(const [pi, p] of plans.entries()){
+    for(const o of (p.obs||[])){
+      let i = 0;
+      for(const ph of (o.photos||[])){
+        if(ph.src){
+          // Si annotations -> bake dans la dataURL avant download
+          const baked = (ph.annotations && ph.annotations.length > 0)
+            ? await renderPhotoAnnotated(ph.src, ph.annotations)
+            : ph.src;
+          allPh.push({src: baked, name: photoFileName(o, i, pi)});
+        }
+        i++;
+      }
+    }
+  }
   if(!allPh.length){ toast('Aucune photo à télécharger'); return; }
   // Si JSZip dispo, on emballe tout en un seul ZIP (Safari mobile bloque les
   // <a>.click() en serie au-dela de 2-3). Sinon, fallback sequentiel.
