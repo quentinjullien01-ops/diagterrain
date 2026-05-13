@@ -1858,6 +1858,40 @@ function expJSON(){
 }
 
 // ── PLAN ANNOTÉ EN WORD ──────────────────────────────────────────────
+// Couleurs RGB par type d'observation (partagee entre les rendus canvas PDF/Word).
+function colRgb(t){
+  return t==='fissure'?[224,82,82]:t==='visuel'?[74,158,255]:t==='sondage'?[76,175,125]:[154,151,160];
+}
+
+// Genere une miniature de plan avec un pin en surbrillance (utilise en fiche PDF
+// et fiche Word). Retourne une dataURL JPEG. Cap a 1200px sur le grand cote.
+function renderPlanMiniature(baseImgEl, o, lbl){
+  const c = document.createElement('canvas');
+  const MAX_MINI = 1200;
+  const sw = baseImgEl.width, sh = baseImgEl.height;
+  const k = Math.max(sw, sh) > MAX_MINI ? (MAX_MINI / Math.max(sw, sh)) : 1;
+  c.width = Math.round(sw*k); c.height = Math.round(sh*k);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(baseImgEl, 0, 0, c.width, c.height);
+  const ps = Math.max(c.width, c.height)/800;
+  const pr = Math.round(20*ps);
+  const x = o.pos.x*k, y = o.pos.y*k;
+  const col = colRgb(o.type);
+  // Halo
+  ctx.beginPath(); ctx.arc(x, y-pr*1.5, pr*1.8, 0, Math.PI*2);
+  ctx.fillStyle='rgba(240,165,0,0.25)'; ctx.fill();
+  // Pin
+  ctx.beginPath(); ctx.arc(x, y-pr*1.5, pr, 0, Math.PI*2);
+  ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y-pr*1.5, pr, 0, Math.PI*2);
+  ctx.strokeStyle='white'; ctx.lineWidth=ps*2; ctx.stroke();
+  // Label
+  ctx.fillStyle='white'; ctx.font=`bold ${Math.round(14*ps)}px monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(lbl, x, y-pr*1.5);
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
 // Rendu commun d'un plan annote avec pins (utilise par exports PDF et Word).
 // Identique au rendu de expPDF pour assurer la coherence visuelle entre livrables.
 function renderAnnotatedPlan(imgDataUrl, planObs){
@@ -2029,6 +2063,16 @@ async function expFichesWord(){
     let imgRels='', mediaFiles={}, imgId=2, bodyAll='';
     const sect=`<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="720" w:right="720" w:bottom="900" w:left="720"/>`;
 
+    // Cache des images de plan deja chargees (eviter N chargements pour N fiches)
+    const planImgCache = new Map();
+    async function getPlanImg(dataUrl){
+      if(planImgCache.has(dataUrl)) return planImgCache.get(dataUrl);
+      const im = new Image();
+      await new Promise(res => { im.onload = res; im.onerror = res; im.src = dataUrl; });
+      planImgCache.set(dataUrl, im);
+      return im;
+    }
+
     for(let i=0;i<allFiches.length;i++){
       const o = allFiches[i].o;
       const fichePlan = allFiches[i].plan;
@@ -2160,6 +2204,41 @@ async function expFichesWord(){
               <w:t xml:space="preserve">  ${escX(photoFileName(o,pi,fichePlanIdx))}</w:t></w:r></w:p>`;
           imgId++;
         }
+      }
+
+      // Localisation sur plan (miniature avec pin en surbrillance) - parite avec PDF
+      if(fichePlan.planImg && o.pos){
+        try{
+          const baseImg2 = await getPlanImg(fichePlan.planImg);
+          if(baseImg2 && baseImg2.width > 0){
+            const mini = renderPlanMiniature(baseImg2, o, lbl);
+            const b64m = mini.split(',')[1];
+            if(b64m){
+              const fnm = `mini${imgId}.jpg`;
+              mediaFiles[fnm] = b64m;
+              imgRels += `<Relationship Id="rId${imgId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${fnm}"/>`;
+              // 70mm de large (1 EMU = 1/914400 inch, 1 inch = 25.4mm => 70mm = 2520000 EMU)
+              const emuW = 2520000;
+              const emuH = Math.round(emuW * baseImg2.height / baseImg2.width);
+              bodyAll += `<w:p><w:pPr><w:spacing w:before="100" w:after="40"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:pPr>
+                <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  Localisation sur plan</w:t></w:r></w:p>`;
+              bodyAll += `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="40" w:after="40"/></w:pPr>
+                <w:r><w:rPr><w:noProof/></w:rPr><w:drawing>
+                  <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+                    <wp:extent cx="${emuW}" cy="${emuH}"/>
+                    <wp:docPr id="${imgId}" name="mini${imgId}"/>
+                    <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                      <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                          <pic:nvPicPr><pic:cNvPr id="${imgId}" name="mini${imgId}"/><pic:cNvPicPr/></pic:nvPicPr>
+                          <pic:blipFill><a:blip r:embed="rId${imgId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+                          <pic:spPr><a:xfrm><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+                        </pic:pic></a:graphicData></a:graphic>
+                  </wp:inline></w:drawing></w:r></w:p>`;
+              imgId++;
+            }
+          }
+        }catch(e){ console.warn('mini plan Word:', e); }
       }
     }
 
@@ -2403,33 +2482,8 @@ async function expFiches(){
       if(fichePlan.planImg && o.pos){
         const planMiniH = Math.min(45, PB-y-18);
         if(planMiniH > 20 && y + planMiniH < PB-14){
-          // Créer miniature du plan avec ce pin mis en évidence (image cachee).
-          // Cap a 1200px pour limiter la memoire (la mini PDF fait ~60mm de large).
-          const c2 = document.createElement('canvas');
           const baseImg2 = await getPlanImg(fichePlan.planImg);
-          const MAX_MINI = 1200;
-          const sw = baseImg2.width, sh = baseImg2.height;
-          const k = Math.max(sw, sh) > MAX_MINI ? (MAX_MINI / Math.max(sw, sh)) : 1;
-          c2.width = Math.round(sw*k); c2.height = Math.round(sh*k);
-          const ctx2 = c2.getContext('2d');
-          ctx2.drawImage(baseImg2, 0, 0, c2.width, c2.height);
-          // Dessiner le pin de cette obs en surbrillance
-          const ps=Math.max(c2.width,c2.height)/800;
-          const pr=Math.round(20*ps);
-          const x2=o.pos.x*k, y2=o.pos.y*k;
-          // Halo
-          ctx2.beginPath(); ctx2.arc(x2,y2-pr*1.5,pr*1.8,0,Math.PI*2);
-          ctx2.fillStyle='rgba(240,165,0,0.25)'; ctx2.fill();
-          // Pin
-          ctx2.beginPath(); ctx2.arc(x2,y2-pr*1.5,pr,0,Math.PI*2);
-          ctx2.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx2.fill();
-          ctx2.beginPath(); ctx2.arc(x2,y2-pr*1.5,pr,0,Math.PI*2);
-          ctx2.strokeStyle='white'; ctx2.lineWidth=ps*2; ctx2.stroke();
-          // Label
-          ctx2.fillStyle='white'; ctx2.font=`bold ${Math.round(14*ps)}px monospace`;
-          ctx2.textAlign='center'; ctx2.textBaseline='middle';
-          ctx2.fillText(lbl, x2, y2-pr*1.5);
-          const mini = c2.toDataURL('image/jpeg',0.85);
+          const mini = renderPlanMiniature(baseImg2, o, lbl);
           try{
             doc.addImage(mini,'JPEG', PA-marg-60, y, 60, planMiniH);
             doc.setFontSize(7); doc.setTextColor(150,150,150);
