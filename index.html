@@ -344,6 +344,7 @@ select.fi-sm option{background:var(--sf)}
       <button class="anno-tool on" data-tool="freehand" title="Dessin libre"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 17l8-8 4 4-8 8H5v-4z"/><path d="M14 7l3-3a2 2 0 1 1 3 3l-3 3"/></svg></button>
       <button class="anno-tool" data-tool="arrow" title="Flèche"><svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/></svg></button>
       <button class="anno-tool" data-tool="circle" title="Cercle"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></button>
+      <button class="anno-tool" data-tool="lasso" title="Entourer libre"><svg viewBox="0 0 24 24"><path d="M5 8c-1 3 1 8 7 8s8-4 7-7-4-5-8-4-5 2-6 3z"/></svg></button>
       <button class="anno-tool" data-tool="text" title="Texte"><svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg></button>
     </div>
     <div class="anno-colors" id="anno-colors">
@@ -1963,10 +1964,11 @@ function renderPhotoAnnotated(src, annotations){
         ctx.fillStyle = a.color || '#e05252';
         ctx.lineWidth = a.width || 4;
         try {
-          if(a.type === 'freehand' && Array.isArray(a.points) && a.points.length > 1){
+          if((a.type === 'freehand' || a.type === 'lasso') && Array.isArray(a.points) && a.points.length > 1){
             ctx.beginPath();
             ctx.moveTo(a.points[0][0], a.points[0][1]);
             for(let i=1; i<a.points.length; i++) ctx.lineTo(a.points[i][0], a.points[i][1]);
+            if(a.type === 'lasso') ctx.closePath();
             ctx.stroke();
           } else if(a.type === 'arrow' && a.from && a.to){
             const [x1,y1] = a.from, [x2,y2] = a.to;
@@ -2680,10 +2682,10 @@ function _sanitizeAnnotations(arr){
   if(!Array.isArray(arr)) return [];
   return arr.map(a => {
     if(!a || typeof a !== 'object') return null;
-    if(a.type === 'freehand'){
+    if(a.type === 'freehand' || a.type === 'lasso'){
       const pts = Array.isArray(a.points) ? a.points.map(_safePoint).filter(Boolean).slice(0, 2000) : [];
       if(pts.length < 2) return null;
-      return {type:'freehand', points:pts, color:_safeColor(a.color), width:_safeNum(a.width, 1, 50, 4)};
+      return {type:a.type, points:pts, color:_safeColor(a.color), width:_safeNum(a.width, 1, 50, 4)};
     }
     if(a.type === 'arrow'){
       const from = _safePoint(a.from), to = _safePoint(a.to);
@@ -2909,7 +2911,7 @@ function _annoRedraw(){
     ctx.strokeStyle = a.color || '#e05252';
     ctx.fillStyle = a.color || '#e05252';
     ctx.lineWidth = (a.width || 4) / _annoImgScale; // canvas px
-    if(a.type === 'freehand' && a.points && a.points.length > 1){
+    if((a.type === 'freehand' || a.type === 'lasso') && a.points && a.points.length > 1){
       ctx.beginPath();
       const p0 = _imgToCanvas(a.points[0]);
       ctx.moveTo(p0[0], p0[1]);
@@ -2917,6 +2919,7 @@ function _annoRedraw(){
         const p = _imgToCanvas(a.points[i]);
         ctx.lineTo(p[0], p[1]);
       }
+      if(a.type === 'lasso') ctx.closePath();
       ctx.stroke();
     } else if(a.type === 'arrow' && a.from && a.to){
       const [x1,y1] = _imgToCanvas(a.from), [x2,y2] = _imgToCanvas(a.to);
@@ -2966,6 +2969,8 @@ async function _annoStart(e){
   const ip = _canvasToImg(cp);
   if(_annoTool === 'freehand'){
     _annoCurrent = {type:'freehand', points:[ip], color:_annoColor, width:_annoWidth};
+  } else if(_annoTool === 'lasso'){
+    _annoCurrent = {type:'lasso', points:[ip], color:_annoColor, width:_annoWidth};
   } else if(_annoTool === 'arrow'){
     _annoCurrent = {type:'arrow', from:ip, to:ip, color:_annoColor, width:_annoWidth};
   } else if(_annoTool === 'circle'){
@@ -2981,7 +2986,7 @@ function _annoMove(e){
   e.preventDefault();
   const cp = _annoPointerPos(e);
   const ip = _canvasToImg(cp);
-  if(_annoCurrent.type === 'freehand'){
+  if(_annoCurrent.type === 'freehand' || _annoCurrent.type === 'lasso'){
     const last = _annoCurrent.points[_annoCurrent.points.length-1];
     // Throttle : ignore si pixel image proche du dernier (limite la taille des annotations)
     if(Math.hypot(ip[0]-last[0], ip[1]-last[1]) > 3) _annoCurrent.points.push(ip);
@@ -2998,7 +3003,7 @@ async function _annoEnd(e){
   e.preventDefault();
   const a = _annoCurrent; _annoCurrent = null;
   // Validation par type
-  if(a.type === 'freehand' && a.points.length < 2){ _annoRedraw(); return; }
+  if((a.type === 'freehand' || a.type === 'lasso') && a.points.length < 2){ _annoRedraw(); return; }
   if(a.type === 'arrow'){
     const d = Math.hypot(a.to[0]-a.from[0], a.to[1]-a.from[1]);
     if(d < 10){ _annoRedraw(); return; }
